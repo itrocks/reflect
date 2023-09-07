@@ -1,0 +1,4 @@
+#!/bin/bash
+cd "$(dirname "${BASH_SOURCE[0]}")" || return
+../../../bin/phpcs --config-set installed_paths "$(realpath ../../../itrocks/coding-standard/ITRocks)"
+../../../bin/phpcs .. --standard=ITRocks --ignore=*/coverage/*

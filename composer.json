@@ -1,0 +1,21 @@
+{
+	"authors":           [{ "name": "Baptiste Pillot", "email": "baptiste@pillot.fr" }],
+	"autoload":          { "psr-4": { "ITRocks\\Reflect\\": "src/" } },
+	"description":       "Extended PHP reflection and standard API for alternative reflection libraries",
+	"homepage":          "https://github.com/itrocks/reflect",
+	"license":           "LGPL-3.0-or-later",
+	"minimum-stability": "dev",
+	"name":              "itrocks/reflect",
+	"require":           {
+		"itrocks/extend": "dev-master",
+		"php":            ">=8.2"
+	},
+	"require-dev": {
+		"ext-xdebug":                   "*",
+		"itrocks/coding-standard":      "dev-master",
+		"phpstan/phpstan":              "^1.10",
+		"phpunit/phpunit":              "^10.1",
+		"phpstan/phpstan-strict-rules": "^1.5"
+	},
+	"type": "library"
+}
