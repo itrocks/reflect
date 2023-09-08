@@ -3,6 +3,7 @@ namespace ITRocks\Reflect;
 
 use ReflectionClass;
 use ReflectionException;
+use ReflectionMethod;
 use ReflectionProperty;
 use ReturnTypeWillChange;
 
@@ -128,6 +129,86 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		return $interfaces;
 	}
 
+	//------------------------------------------------------------------------------------ getMethods
+	/**
+	 * Gets an array of methods for the class
+	 *
+	 * Methods visible for current class, not the privates ones from parents and traits are
+	 * retrieved but if you set T_EXTENDS and T_USE to get them.
+	 *
+	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getMethods()
+	 * @param class-string|null $final_class If set, forces the final class to this name
+	 *                                       (mostly for internal use)
+	 * @return array<string,Reflection_Method> key is the name of the method
+	 */
+	public function getMethods(int $filter = null, string $final_class = null) : array
+	{
+		$any_inherit    = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
+		$any_visibility = ReflectionMethod::IS_ABSTRACT | ReflectionMethod::IS_FINAL
+			| ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PRIVATE
+			| ReflectionMethod::IS_STATIC;
+		if (isset($filter) && (($filter & $any_visibility) === 0)) {
+			$filter |= $any_visibility;
+		}
+		$reflection_methods = [];
+		foreach (parent::getMethods($filter) as $method) {
+			$reflection_methods[$method->name] = $method;
+		}
+		if ($reflection_methods === []) {
+			return $reflection_methods;
+		}
+		if (is_null($final_class)) {
+			$final_class = $this->name;
+		}
+		if (
+			is_null($filter)
+			|| (($filter & $any_inherit) === $any_inherit)
+			|| (($filter & $any_inherit) === 0)
+		) {
+			$methods = [];
+			foreach ($reflection_methods as $method_name => $reflection_method) {
+				/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
+				$method = new Reflection_Method($this->name, $method_name);
+				$method->forceFinalClass($final_class);
+				$methods[$method_name] = $method;
+			}
+			return $methods;
+		}
+		if (($filter & self::T_EXTENDS) === 0) {
+			$parent_class = $this->getParentClass();
+			if ($parent_class !== false) {
+				$parent_methods = $parent_class->getMethods(
+					$filter & ~ReflectionMethod::IS_PRIVATE
+				);
+				foreach ($parent_methods as $method_name => $reflection_method) {
+					unset($reflection_methods[$method_name]);
+				}
+			}
+		}
+		if (($filter & self::T_IMPLEMENTS) === 0) {
+			foreach ($reflection_methods as $method_name => $reflection_method) {
+				if ($reflection_method->getDeclaringClass()->isInterface()) {
+					unset($reflection_methods[$method_name]);
+				}
+			}
+		}
+		if (($filter & self::T_USE) === 0) {
+			foreach ($reflection_methods as $method_name => $reflection_method) {
+				if ($reflection_method->getDeclaringClass()->isTrait()) {
+					unset($reflection_methods[$method_name]);
+				}
+			}
+		}
+		$methods = [];
+		foreach ($reflection_methods as $method_name => $reflection_method) {
+			/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
+			$method = new Reflection_Method($this->name, $method_name);
+			$method->forceFinalClass($final_class);
+			$methods[$method_name] = $method;
+		}
+		return $methods;
+	}
+
 	//-------------------------------------------------------------------------------- getParentClass
 	public function getParentClass() : static|false
 	{
@@ -153,7 +234,6 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 *
 	 * Properties visible for current class, not the privates ones from parents and traits are
 	 * retrieved but if you set T_EXTENDS and T_USE to get them.
-	 * If you set self::T_SORT properties will be sorted by (@)display_order class annotation
 	 *
 	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getProperties()
 	 * @param class-string|null $final_class If set, forces the final class to this name

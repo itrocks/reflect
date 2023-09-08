@@ -35,6 +35,14 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		}
 	}
 
+	//------------------------------------------------------------------------------- forceFinalClass
+	/** @param class-string $final_class */
+	public function forceFinalClass(string $final_class) : void
+	{
+		unset($this->cache['final_class_raw']);
+		$this->cache['final_class'] = $final_class;
+	}
+
 	//----------------------------------------------------------------------------- getDeclaringClass
 	/**
 	 * Gets the declaring class for the reflected method
@@ -77,8 +85,8 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	{
 		$traits = $class->getTraits();
 		foreach ($traits as $trait) {
-			$properties = $trait->getProperties(0);
-			if (isset($properties[$this->name])) {
+			$methods = $trait->getMethods();
+			if (isset($methods[$this->name])) {
 				return $this->getDeclaringTraitInternal($trait);
 			}
 		}
@@ -109,7 +117,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	}
 
 	//----------------------------------------------------------------------------- getFinalClassName
-	/** @return class-string The one where the property came from with a call to get...() */
+	/** @return class-string The one where the method came from with a call to get...() */
 	public function getFinalClassName() : string
 	{
 		if (isset($this->cache['final_class'])) {
