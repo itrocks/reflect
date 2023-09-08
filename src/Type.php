@@ -2,62 +2,32 @@
 namespace ITRocks\Reflect;
 
 use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Type\Reflection_Intersection_Type;
+use ITRocks\Reflect\Type\Reflection_Named_Type;
+use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Reflection_Undefined_Type;
+use ITRocks\Reflect\Type\Reflection_Union_Type;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
+use ReflectionType;
 use ReflectionUnionType;
 
-class Type
+abstract class Type
 {
 
-	//----------------------------------------------------------------------------------- $reflection
-	protected Reflection|null $reflection = null;
-
-	//----------------------------------------------------------------------------------------- $type
-	protected ReflectionIntersectionType|ReflectionNamedType|ReflectionUnionType $type;
-
-	//----------------------------------------------------------------------------------- __construct
-	public function __construct(
-		ReflectionIntersectionType|ReflectionNamedType|ReflectionUnionType $type,
-		Reflection $reflection = null
-	) {
-		$this->reflection = $reflection;
-		$this->type       = $type;
-	}
-
-	//------------------------------------------------------------------------------------ allowsNull
-	public function allowsNull() : bool
+	//-------------------------------------------------------------------------------------------- of
+	public static function of(?ReflectionType $type, Reflection $reflection) : Reflection_Type
 	{
-		return $this->type->allowsNull();
-	}
-
-	//--------------------------------------------------------------------------------------- getName
-	public function getName() : string
-	{
-		return ($this->type instanceof ReflectionNamedType) ? $this->type->getName() : '';
-	}
-
-	//-------------------------------------------------------------------------------------- getTypes
-	/** @return list<Type> */
-	public function getTypes() : array
-	{
-		$this_type = $this->type;
-		if ($this_type instanceof ReflectionNamedType) {
-			return [];
+		if ($type instanceof ReflectionNamedType) {
+			return new Reflection_Named_Type($type, $reflection);
 		}
-		/** @var ReflectionIntersectionType|ReflectionUnionType $this_type */
-		$types = [];
-		foreach ($this_type->getTypes() as $type) {
-			/** @var ReflectionIntersectionType|ReflectionNamedType|ReflectionUnionType $type */
-			$types[] = new Type($type, $this->reflection);
+		if ($type instanceof ReflectionUnionType) {
+			return new Reflection_Union_Type($type, $reflection);
 		}
-		return $types;
-	}
-
-	//------------------------------------------------------------------------------------- isBuiltin
-	/** @todo areBuiltIn() (all named types must be built-in) and hasBuiltIn() (any named type) */
-	public function isBuiltin() : bool
-	{
-		return ($this->type instanceof ReflectionNamedType) && $this->type->isBuiltin();
+		if ($type instanceof ReflectionIntersectionType) {
+			return new Reflection_Intersection_Type($type, $reflection);
+		}
+		return new Reflection_Undefined_Type($reflection);
 	}
 
 }

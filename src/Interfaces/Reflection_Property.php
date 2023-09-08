@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Interfaces;
 
-use ITRocks\Reflect\Type;
+use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
 /**
@@ -18,7 +18,7 @@ interface Reflection_Property extends Reflection_Class_Component
 	public function __construct(object|string $class_name, string $property_name);
 
 	//--------------------------------------------------------------------------------------- getType
-	public function getType() : ?Type;
+	public function getType() : ?Reflection_Type;
 
 	//-------------------------------------------------------------------------------------- getValue
 	public function getValue(object $object) : mixed;

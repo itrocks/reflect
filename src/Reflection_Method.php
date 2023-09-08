@@ -1,8 +1,10 @@
 <?php
 namespace ITRocks\Reflect;
 
+use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 use ReflectionMethod;
+use ReturnTypeWillChange;
 
 /**
  * A rich extension of the PHP ReflectionMethod class, adding:
@@ -172,10 +174,12 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 			. '(' . join(', ', $parameters) . ")\n" . '{';
 	}
 
-	//--------------------------------------------------------------------------- getReturnTypeString
-	public function getReturnTypeString() : string
+	//--------------------------------------------------------------------------------- getReturnType
+	/** @phpstan-ignore-next-line getType returns a proxy which is compatible with ReflectionType */
+	#[ReturnTypeWillChange]
+	public function getReturnType() : Reflection_Type
 	{
-		return strval($this->getReturnType());
+		return Type::of(parent::getReturnType(), $this);
 	}
 
 	//---------------------------------------------------------------------------------- hasParameter

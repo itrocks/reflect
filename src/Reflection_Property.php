@@ -1,11 +1,9 @@
 <?php
 namespace ITRocks\Reflect;
 
+use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
-use ReflectionIntersectionType;
-use ReflectionNamedType;
 use ReflectionProperty;
-use ReflectionUnionType;
 use ReturnTypeWillChange;
 
 /**
@@ -161,11 +159,9 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	//--------------------------------------------------------------------------------------- getType
 	/** @phpstan-ignore-next-line getType returns a proxy which is compatible with ReflectionType */
 	#[ReturnTypeWillChange]
-	public function getType() : ?Type
+	public function getType() : Reflection_Type
 	{
-		/** @var ReflectionIntersectionType|ReflectionNamedType|ReflectionUnionType|null $type */
-		$type = parent::getType();
-		return isset($type) ? new Type($type, $this) : null;
+		return Type::of(parent::getType(), $this);
 	}
 
 	//-------------------------------------------------------------------------------------------- is

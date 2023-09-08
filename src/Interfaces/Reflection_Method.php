@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Interfaces;
 
+use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
 /**
@@ -23,8 +24,8 @@ interface Reflection_Method extends Reflection_Class_Component
 	 */
 	public function getPrototypeString() : string;
 
-	//--------------------------------------------------------------------------- getReturnTypeString
-	public function getReturnTypeString() : string;
+	//--------------------------------------------------------------------------------- getReturnType
+	public function getReturnType() : Reflection_Type;
 
 	//------------------------------------------------------------------------------------ isAbstract
 	public function isAbstract() : bool;
