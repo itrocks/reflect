@@ -5,6 +5,7 @@ interface I
 {
 
 	//------------------------------------------------------------------------- publicInterfaceMethod
+	/** I::publicInterfaceMethod */
 	public function publicInterfaceMethod() : void;
 
 }

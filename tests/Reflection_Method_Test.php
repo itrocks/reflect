@@ -1,15 +1,18 @@
 <?php
 namespace ITRocks\Reflect\Tests;
 
+use ITRocks\Reflect\Interfaces\Reflection;
 use ITRocks\Reflect\Reflection_Method;
 use ITRocks\Reflect\Tests\Data\A;
 use ITRocks\Reflect\Tests\Data\C;
 use ITRocks\Reflect\Tests\Data\I;
+use ITRocks\Reflect\Tests\Data\O;
 use ITRocks\Reflect\Tests\Data\P;
 use ITRocks\Reflect\Tests\Data\T;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
+use ReflectionMethod;
 
 class Reflection_Method_Test extends TestCase
 {
@@ -49,7 +52,15 @@ class Reflection_Method_Test extends TestCase
 		self::assertEquals(end($callable), $reflection_method->name, "data set $key name");
 	}
 
-	//------------------------------------------------------------------------ testDeclaringClassName
+	//--------------------------------------------------------------------------- testForceFinalClass
+	public function testForceFinalClass() : void
+	{
+		$reflection_method = new Reflection_Method(A::class, 'publicInterfaceMethod');
+		$reflection_method->forceFinalClass(static::class);
+		self::assertEquals(static::class, $reflection_method->getFinalClass()->name);
+	}
+
+	//------------------------------------------------------------------ testGetDeclaringClassAndName
 	/**
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
@@ -60,30 +71,69 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([2, [C::class, 'publicParentMethod'],    P::class])]
 	#[TestWith([3, [C::class, 'publicTraitMethod'],     C::class])]
 	#[TestWith([4, [A::class, 'publicInterfaceMethod'], I::class])]
-	public function testDeclaringClassName(int $key, array $callable, string $expected) : void
+	public function testGetDeclaringClassAndName(int $key, array $callable, string $expected) : void
 	{
+		$native_reflection = new ReflectionMethod(reset($callable), end($callable));
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
-		self::assertEquals($expected, $reflection_method->getDeclaringClassName(), "data set $key");
+		self::assertEquals($native_reflection->getDeclaringClass()->name, $expected, "data set $key native");
+		self::assertEquals($expected, $reflection_method->getDeclaringClassName(), "data set $key name");
+		self::assertEquals($expected, $reflection_method->getDeclaringClass()->name, "data set $key class");
 	}
 
-	//------------------------------------------------------------------------ testDeclaringTraitName
+	//------------------------------------------------------------------ testGetDeclaringTraitAndName
 	/**
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
 	 * @throws ReflectionException
 	 */
-	#[TestWith([0, [C::class, 'publicClassMethod'],     C::class])]
-	#[TestWith([1, [C::class, 'publicInterfaceMethod'], C::class])]
-	#[TestWith([2, [C::class, 'publicParentMethod'],    P::class])]
-	#[TestWith([3, [C::class, 'publicTraitMethod'],     T::class])]
-	#[TestWith([4, [A::class, 'publicInterfaceMethod'], I::class])]
-	public function testDeclaringTraitName(int $key, array $callable, string $expected) : void
+	#[TestWith([0, [C::class, 'publicClassMethod'],           C::class])]
+	#[TestWith([1, [C::class, 'publicInterfaceMethod'],       C::class])]
+	#[TestWith([2, [C::class, 'publicParentMethod'],          P::class])]
+	#[TestWith([3, [C::class, 'publicTraitMethod'],           T::class])]
+	#[TestWith([4, [O::class, 'publicTraitOverriddenMethod'], O::class])]
+	#[TestWith([5, [A::class, 'publicInterfaceMethod'],       I::class])]
+	#[TestWith([6, [T::class, 'publicTraitOverriddenMethod'], T::class])]
+	#[TestWith([7, [C::class, 'publicTraitOverriddenMethod'], C::class])]
+	#[TestWith([8, [C::class, 'publicRenamedTraitOverriddenMethod'], C::class])]
+	public function testGetDeclaringTraitAndName(int $key, array $callable, string $expected) : void
 	{
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
-		self::assertEquals($expected, $reflection_method->getDeclaringTraitName(), "data set $key");
+		self::assertEquals($expected, $reflection_method->getDeclaringTraitName(), "data set $key name");
+		self::assertEquals($expected, $reflection_method->getDeclaringTrait()->name, "data set $key trait");
 	}
 
-	//------------------------------------------------------------------------- testGetFinalClassName
+	//----------------------------------------------------------------------------- testGetDocComment
+	/**
+	 * @param array{class-string,string} $callable
+	 * @param int<0,max>                 $filter
+	 * @throws ReflectionException
+	 */
+	#[TestWith([0,  [A::class, 'publicInterfaceMethod'], '/** I::publicInterfaceMethod */', 0])]
+	#[TestWith([1,  [A::class, 'publicInterfaceMethod'], '/** I::publicInterfaceMethod */', Reflection::T_INHERIT])]
+	#[TestWith([2,  [O::class, 'publicInterfaceMethod'], '/** O::publicInterfaceMethod */', 0])]
+	#[TestWith([3,  [O::class, 'publicInterfaceMethod'], "/** O::publicInterfaceMethod */\n/** I::publicInterfaceMethod */", Reflection::T_EXTENDS])]
+	#[TestWith([4,  [O::class, 'publicInterfaceMethod'], "/** O::publicInterfaceMethod */\n/** I::publicInterfaceMethod */", Reflection::T_IMPLEMENTS])]
+	#[TestWith([5,  [O::class, 'publicInterfaceMethod'], '/** O::publicInterfaceMethod */', Reflection::T_USE])]
+	#[TestWith([6,  [O::class, 'publicInterfaceMethod'], "/** O::publicInterfaceMethod */\n/** I::publicInterfaceMethod */", Reflection::T_INHERIT])]
+	#[TestWith([7,  [C::class, 'publicTraitOverriddenMethod'], "/** C::publicTraitOverriddenMethod */", 0])]
+	#[TestWith([11, [C::class, 'publicTraitOverriddenMethod'], "/** C::publicTraitOverriddenMethod */", Reflection::T_INHERIT])]
+	#[TestWith([12, [C::class, 'publicRenamedTraitOverriddenMethod'], "/** T::publicTraitOverriddenMethod */", 0])]
+	#[TestWith([13, [C::class, 'publicRenamedTraitOverriddenMethod'], "/** T::publicTraitOverriddenMethod */", Reflection::T_INHERIT])]
+	#[TestWith([14, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */", 0])]
+	#[TestWith([15, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */\n/** P::publicParentInterfaceMethod */", Reflection::T_EXTENDS])]
+	#[TestWith([16, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */", Reflection::T_IMPLEMENTS])]
+	#[TestWith([17, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */", Reflection::T_USE])]
+	#[TestWith([18, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */\n/** P::publicParentInterfaceMethod */\n/** PI::publicParentInterfaceMethod */", Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS])]
+	#[TestWith([19, [O::class, 'publicParentInterfaceMethod'], "/** O::publicParentInterfaceMethod */\n/** P::publicParentInterfaceMethod */\n/** PI::publicParentInterfaceMethod */", Reflection::T_INHERIT])]
+	#[TestWith([20, [O::class, 'publicTraitInterfaceMethod'], "/** OT::publicTraitInterfaceMethod */", 0])]
+	#[TestWith([21, [O::class, 'publicTraitInterfaceMethod'], "/** OT::publicTraitInterfaceMethod */\n/** OI::publicTraitInterfaceMethod */", Reflection::T_IMPLEMENTS])]
+	public function testGetDocComment(int $key, array $callable, string $expected, int $filter) : void
+	{
+		$reflection_method = new Reflection_Method(reset($callable), end($callable));
+		self::assertEquals($expected, $reflection_method->getDocComment($filter, false), "data set $key");
+	}
+
+	//---------------------------------------------------------------------- testGetFinalClassAndName
 	/**
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
@@ -94,10 +144,11 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([2, [C::class, 'publicParentMethod'],    C::class])]
 	#[TestWith([3, [C::class, 'publicTraitMethod'],     C::class])]
 	#[TestWith([4, [A::class, 'publicInterfaceMethod'], A::class])]
-	public function testGetFinalClassName(int $key, array $callable, string $expected) : void
+	public function testGetFinalClassAndName(int $key, array $callable, string $expected) : void
 	{
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
-		self::assertEquals($expected, $reflection_method->getFinalClassName(), "data set $key");
+		self::assertEquals($expected, $reflection_method->getFinalClassName(), "data set $key name");
+		self::assertEquals($expected, $reflection_method->getFinalClass()->name, "data set $key class");
 	}
 
 }

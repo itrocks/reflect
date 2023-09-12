@@ -16,6 +16,10 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 {
 	use Instantiates;
 
+	//---------------------------------------------------------------------------------------- $cache
+	/** @var array{'doc_comment'?:array<int<1,max>,string|false>,'implements'?:list<class-string>,'namespace_use'?:array<string,string>,'tokens'?:list<array{int,string,int}|string>} */
+	protected array $cache = [];
+
 	//----------------------------------------------------------------------------------- __construct
 	/**
 	 * @noinspection PhpDocSignatureInspection Inspector bug
@@ -42,13 +46,20 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	/**
 	 * Accumulates documentations of parents and the class itself
 	 *
-	 * @param int $filter @default self::T_EXTEND|self::T_IMPLEMENT|self::T_USE
+	 * @param int<0,max> $filter @default self::T_EXTENDS|self::T_IMPLEMENTS|self::T_USE
 	 */
-	public function getDocComment(int $filter = 0) : string|false
+	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
+		: string|false
 	{
 		$doc_comment = parent::getDocComment();
+		if (($doc_comment !== false) && $locate) {
+			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
+		}
 		if ($filter === 0) {
 			return $doc_comment;
+		}
+		if ($cache && isset($this->cache['doc_comment'][$filter | $locate])) {
+			return $this->cache['doc_comment'][$filter | $locate];
 		}
 		/** @var array<class-string,true> $already */
 		static $already    = [];
@@ -56,7 +67,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		$call_stack ++;
 		if ((($filter & self::T_USE) > 0) && !$this->isInterface()) {
 			foreach ($this->getTraits(self::T_USE) as $trait) {
-				$doc_comment .= "\n" . self::DOC_COMMENT_AGGREGATE . $trait->name . "\n";
+				if ($locate) {
+					$doc_comment .= '/** FROM ' . $trait->name . " */\n";
+				}
 				$doc_comment .= $trait->getDocComment($filter);
 			}
 		}
@@ -66,14 +79,18 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 					continue;
 				}
 				$already[$interface->name] = true;
-				$doc_comment .= "\n" . self::DOC_COMMENT_AGGREGATE . $interface->name . "\n";
+				if ($locate) {
+					$doc_comment .= '/** FROM ' . $interface->name . " */\n";
+				}
 				$doc_comment .= $interface->getDocComment($filter);
 			}
 		}
 		if ((($filter & self::T_EXTENDS) > 0) && !$this->isTrait()) {
 			$parent_class = $this->getParentClass();
 			if ($parent_class !== false) {
-				$doc_comment .= "\n" . self::DOC_COMMENT_AGGREGATE . $parent_class->name . "\n";
+				if ($locate) {
+					$doc_comment .= '/** FROM ' . $parent_class->name . " */\n";
+				}
 				$doc_comment .= $parent_class->getDocComment($filter);
 			}
 		}
@@ -82,6 +99,58 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			$already = [];
 		}
 		return $doc_comment;
+	}
+
+	//----------------------------------------------------------------------------- getImplementNames
+	/** @return list<class-string> */
+	public function getImplementNames() : array
+	{
+		if ($this->isInterface() || $this->isTrait()) {
+			return [];
+		}
+		if (key_exists('implements', $this->cache)) {
+			return $this->cache['implements'];
+		}
+		$implements    = [];
+		$namespace     = $this->getNamespaceName();
+		$namespace_use = $this->getNamespaceUse();
+		$tokens        = $this->getTokens();
+		$token         = current($tokens);
+		while ($token !== false) {
+			if ($token === '{') {
+				$this->cache['implements'] = [];
+				return [];
+			}
+			if ($token[0] === T_IMPLEMENTS) {
+				break;
+			}
+			$token = next($tokens);
+		}
+		while (!in_array($token, ['{', false], true)) {
+			if (in_array(
+				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
+			)) {
+				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
+			}
+			$token = next($tokens);
+		}
+		$this->cache['implements'] = $implements;
+		return $implements;
+	}
+
+	//--------------------------------------------------------------------------------- getImplements
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return array<class-string,static>
+	 */
+	public function getImplements() : array
+	{
+		$implements = [];
+		foreach ($this->getImplementNames() as $implement_name) {
+			/** @noinspection PhpUnhandledExceptionInspection from valid getImplementNames */
+			$implements[$implement_name] = new static($implement_name);
+		}
+		return $implements;
 	}
 
 	//----------------------------------------------------------------------------- getInterfaceNames
@@ -129,6 +198,13 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		return $interfaces;
 	}
 
+	//------------------------------------------------------------------------------------- getMethod
+	/** @throws ReflectionException */
+	public function getMethod(string $name) : Reflection_Method
+	{
+		return new Reflection_Method($this->name, $name);
+	}
+
 	//------------------------------------------------------------------------------------ getMethods
 	/**
 	 * Gets an array of methods for the class
@@ -160,11 +236,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if (is_null($final_class)) {
 			$final_class = $this->name;
 		}
-		if (
-			is_null($filter)
-			|| (($filter & $any_inherit) === $any_inherit)
-			|| (($filter & $any_inherit) === 0)
-		) {
+		if (is_null($filter) || (($filter & $any_inherit) === $any_inherit)) {
 			$methods = [];
 			foreach ($reflection_methods as $method_name => $reflection_method) {
 				/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
@@ -207,6 +279,36 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			$methods[$method_name] = $method;
 		}
 		return $methods;
+	}
+
+	//------------------------------------------------------------------------------- getNamespaceUse
+	/** @return array<string,string> array<string $alias, string $use>*/
+	public function getNamespaceUse() : array
+	{
+		if (key_exists('namespace_use', $this->cache)) {
+			return $this->cache['namespace_use'];
+		}
+		$namespace     = $this->getNamespaceName();
+		$namespace_use = [];
+		$tokens        = $this->getTokens();
+		$token         = reset($tokens);
+		while ($token !== false) {
+			if (($token[0] === T_NAMESPACE) && (Parse::namespaceName($tokens) === $namespace)) {
+				break;
+			}
+			$token = next($tokens);
+		}
+		while ($token !== false) {
+			if ($token[0] === T_USE) {
+				$namespace_use += Parse::namespaceUse($tokens);
+			}
+			if (in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT, '}'], true)) {
+				break;
+			}
+			$token = next($tokens);
+		}
+		$this->cache['namespace_use'] = $namespace_use;
+		return $namespace_use;
 	}
 
 	//-------------------------------------------------------------------------------- getParentClass
@@ -316,6 +418,27 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	public function getProperty(string $name) : Reflection_Property
 	{
 		return new Reflection_Property($this->name, $name);
+	}
+
+	//------------------------------------------------------------------------------------- getTokens
+	/** @return list<array{int,string,int}|string> */
+	public function & getTokens() : array
+	{
+		if (key_exists('tokens', $this->cache)) {
+			return $this->cache['tokens'];
+		}
+		$filename = $this->getFileName();
+		if ($filename === false) {
+			$this->cache['tokens'] = [];
+			return $this->cache['tokens'];
+		}
+		$sourcecode = file_get_contents($filename);
+		if ($sourcecode === false) {
+			$this->cache['tokens'] = [];
+			return $this->cache['tokens'];
+		}
+		$this->cache['tokens'] = token_get_all($sourcecode);
+		return $this->cache['tokens'];
 	}
 
 	//--------------------------------------------------------------------------------- getTraitNames

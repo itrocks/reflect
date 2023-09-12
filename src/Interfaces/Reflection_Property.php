@@ -17,6 +17,9 @@ interface Reflection_Property extends Reflection_Class_Component
 	 */
 	public function __construct(object|string $class_name, string $property_name);
 
+	//------------------------------------------------------------------------------------- getParent
+	public function getParent() : ?static;
+
 	//--------------------------------------------------------------------------------------- getType
 	public function getType() : ?Reflection_Type;
 

@@ -47,9 +47,6 @@ interface Reflection_Class_Component extends Reflection
 	/** @return class-string The one where the property came from with a call to get...() */
 	public function getFinalClassName() : string;
 
-	//------------------------------------------------------------------------------------- getParent
-	public function getParent() : ?static;
-
 	//------------------------------------------------------------------------------------- isPrivate
 	public function isPrivate() : bool;
 

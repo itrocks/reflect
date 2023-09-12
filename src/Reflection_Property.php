@@ -14,7 +14,7 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
-	/** @var array{declaring_trait:Reflection_Class<object>,doc_comment:string,parent:static|null}|array<void> */
+	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:string|false,'parent'?:static|null} */
 	private array $cache = [];
 
 	//---------------------------------------------------------------------------------- $final_class
@@ -57,7 +57,6 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	public function getDeclaringTrait() : Reflection_Class
 	{
 		if (isset($this->cache['declaring_trait'])) {
-			/** @phpstan-ignore-next-line declaring_trait is always initialized as a Reflection_Class */
 			return $this->cache['declaring_trait'];
 		}
 		$declaring_trait = $this->getDeclaringTraitInternal($this->getDeclaringClass());
@@ -90,23 +89,25 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 
 	//--------------------------------------------------------------------------------- getDocComment
 	/**
-	 * @param int  $filter self::T_EXTENDS | self::T_INHERIT | self::T_USE (all work the same way)
-	 * @param bool $cache true if save/use cache
+	 * @param int<0,max> $filter self::T_EXTENDS|self::T_INHERIT|self::T_USE (all work the same way)
+	 * @param bool       $cache true if save/use cache
 	 */
-	public function getDocComment(int $filter = 0, bool $cache = true) : string|false
+	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
+		: string|false
 	{
+		$doc_comment = parent::getDocComment();
+		if (($doc_comment !== false) && $locate) {
+			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
+		}
 		if ($filter === 0) {
-			return parent::getDocComment();
+			return $doc_comment;
 		}
 		if ($cache && isset($this->cache['doc_comment'])) {
-			/** @phpstan-ignore-next-line doc_comment is always initialized as a string */
 			return $this->cache['doc_comment'];
 		}
-		$doc_comment = "/**\n" . self::DOC_COMMENT_AGGREGATE . $this->getDeclaringTrait()->name . "\n"
-			. parent::getDocComment();
 		$parent_property = $this->getParent();
 		if (isset($parent_property)) {
-			$doc_comment .= $parent_property->getDocComment();
+			$doc_comment .= $parent_property->getDocComment($filter, $cache, $locate);
 		}
 		if ($cache) {
 			$this->cache['doc_comment'] = $doc_comment;
@@ -134,26 +135,30 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	//------------------------------------------------------------------------------------- getParent
 	public function getParent() : ?static
 	{
-		if (isset($this->cache['parent'])) {
-			/** @phpstan-ignore-next-line  */
+		if (key_exists('parent', $this->cache)) {
 			return $this->cache['parent'];
 		}
-		$parent = null;
-		if (!$this->isPrivate()) {
-			$parent_class = $this->getDeclaringClass()->getParentClass();
-			if ($parent_class !== false) {
-				try {
-					$parent_property = $parent_class->getProperty($this->name);
-					if (!$parent_property->isPrivate()) {
-						$parent = new static($parent_property->class, $parent_property->name);
-					}
-				}
-				catch (ReflectionException) {
-				}
-			}
+		$this->cache['parent'] = null;
+		if ($this->isPrivate()) {
+			return null;
+		}
+		$parent_class = $this->getDeclaringClass()->getParentClass();
+		if ($parent_class === false) {
+			return null;
+		}
+		try {
+			$parent = $parent_class->getProperty($this->name);
+			$parent = new static($parent->final_class, $parent->name);
+		}
+		catch (ReflectionException) {
+			return null;
+		}
+		if ($parent->isPrivate()) {
+			return null;
 		}
 		$this->cache['parent'] = $parent;
-		return $parent;
+		/** @noinspection PhpUnhandledExceptionInspection caught getProperty */
+		return new static($parent->class, $parent->name);
 	}
 
 	//--------------------------------------------------------------------------------------- getType

@@ -15,8 +15,8 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
-	/** @var array{declaring_trait:Reflection_Class,final_class:class-string,final_class_raw:class-string|object|string,parent:static|null}|array<void> */
-	private array $cache = [];
+	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'final_class'?:class-string,'final_class_raw':class-string|object|string,'parent'?:static|null} */
+	private array $cache;
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
@@ -27,7 +27,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	{
 		$this->cache['final_class_raw'] = $object_or_class_or_method;
 		if (is_null($method)) {
-			// @phpstan-ignore-next-line Call with an object will result in a fatal error, as expected
+			/** @phpstan-ignore-next-line Call with an object will result in a fatal error, as expected */
 			parent::__construct($object_or_class_or_method);
 		}
 		else {
@@ -68,7 +68,6 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	public function getDeclaringTrait() : Reflection_Class
 	{
 		if (isset($this->cache['declaring_trait'])) {
-			/** @phpstan-ignore-next-line declaring_trait is always initialized as a Reflection_Class */
 			return $this->cache['declaring_trait'];
 		}
 		$declaring_trait = $this->getDeclaringTraitInternal($this->getDeclaringClass());
@@ -83,6 +82,11 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	 */
 	private function getDeclaringTraitInternal(Reflection_Class $class) : Reflection_Class
 	{
+		$declaring_class = $this->getDeclaringClass();
+		$methods         = $declaring_class->getMethods(0);
+		if (key_exists($this->name, $methods)) {
+			return $declaring_class;
+		}
 		$traits = $class->getTraits();
 		foreach ($traits as $trait) {
 			$methods = $trait->getMethods();
@@ -100,9 +104,72 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	}
 
 	//--------------------------------------------------------------------------------- getDocComment
-	public function getDocComment(int $filter = 0) : string|false
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param int<0,max> $filter self::T_EXTENDS|self::T_IMPLEMENTS|self::T_USE
+	 */
+	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
+		: string|false
 	{
-		return parent::getDocComment();
+		$doc_comment = parent::getDocComment();
+		if (($doc_comment !== false) && $locate) {
+			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
+		}
+		if ($filter === 0) {
+			return $doc_comment;
+		}
+		if ($cache && isset($this->cache['doc_comment'][$filter])) {
+			return $this->cache['doc_comment'][$filter];
+		}
+		/** @var list<string> $already */
+		static $already = [];
+		static $depth   = 0;
+		if ($depth === 0) {
+			$already[] = $this->class;
+		}
+		if (($filter & self::T_IMPLEMENTS) > 0) {
+			foreach ($this->getFinalClass()->getImplements() as $interface) {
+				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {
+					continue;
+				}
+				$prototype = $interface->getMethod($this->name);
+				$already[] = $interface->name;
+				$append    = $prototype->getDocComment($filter, $cache, $locate);
+				if ($append !== false) {
+					$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
+				}
+			}
+		}
+		$has_prototype  = $this->hasPrototype();
+		/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
+		$prototype       = $has_prototype ? $this->getPrototype() : null;
+		$prototype_class = $prototype?->getDeclaringClass();
+		if (
+			(($filter & self::T_USE) > 0)
+			&& isset($prototype_class)
+			&& $prototype_class->isTrait()
+			&& in_array($prototype->class, $this->getFinalClass()->getTraitNames(), true)
+		) {
+			$append = $prototype->getDocComment($filter, $cache, $locate);
+			if ($append !== false) {
+				$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
+			}
+		}
+		if ((($filter & self::T_EXTENDS) > 0) && !is_null($parent = $this->getParent())) {
+			$depth ++;
+			$append = $parent->getDocComment($filter, $cache, $locate);
+			$depth --;
+			if ($depth === 0) {
+				$already = [];
+			}
+			if ($append !== false) {
+				$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
+			}
+		}
+		if ($cache) {
+			$this->cache['doc_comment'][$filter] = $doc_comment;
+		}
+		return $doc_comment;
 	}
 
 	//--------------------------------------------------------------------------------- getFinalClass
@@ -120,8 +187,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	/** @return class-string The one where the method came from with a call to get...() */
 	public function getFinalClassName() : string
 	{
-		if (isset($this->cache['final_class'])) {
-			/** @phpstan-ignore-next-line final_class is always initialized as a class-string */
+		if (key_exists('final_class', $this->cache)) {
 			return $this->cache['final_class'];
 		}
 		/** @var class-string|object|string $final_class Defined as long as final_class is not */
@@ -144,26 +210,21 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	//------------------------------------------------------------------------------------- getParent
 	public function getParent() : ?static
 	{
-		if (isset($this->cache['parent'])) {
-			/** @phpstan-ignore-next-line  */
-			return $this->cache['parent'];
+		$parent_class = $this->getFinalClass()->getParentClass();
+		if (($parent_class === false) || !$parent_class->hasMethod($this->name)) {
+			return null;
 		}
-		$parent = null;
-		if (!$this->isPrivate()) {
-			$parent_class = $this->getDeclaringClass()->getParentClass();
-			if ($parent_class !== false) {
-				try {
-					$parent_method = $parent_class->getMethod($this->name);
-					if (!$parent_method->isPrivate()) {
-						$parent = new static($parent_method->class, $parent_method->name);
-					}
-				}
-				catch (ReflectionException) {
-				}
-			}
-		}
-		$this->cache['parent'] = $parent;
-		return $parent;
+		$parent = $parent_class->getMethod($this->name);
+		/** @noinspection PhpUnhandledExceptionInspection from getMethod */
+		return new static($parent->class, $parent->name);
+	}
+
+	//---------------------------------------------------------------------------------- getPrototype
+	/** @throws ReflectionException */
+	public function getPrototype() : static
+	{
+		$parent = parent::getPrototype();
+		return new static($parent->class, $parent->name);
 	}
 
 	//---------------------------------------------------------------------------- getPrototypeString

@@ -18,8 +18,9 @@ interface Reflection
 	public const T_USE        = 4096;
 
 	//--------------------------------------------------------------------------------- getDocComment
-	/** @param int $filter self::T_EXTEND|self::T_IMPLEMENT|self::T_USE */
-	public function getDocComment(int $filter = 0) : string|false;
+	/** @param int<0,max> $filter self::T_EXTEND|self::T_IMPLEMENT|self::T_USE */
+	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
+		: string|false;
 
 	//--------------------------------------------------------------------------------------- getName
 	public function getName() : ?string;

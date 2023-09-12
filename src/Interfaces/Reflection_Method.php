@@ -17,6 +17,12 @@ interface Reflection_Method extends Reflection_Class_Component
 	 */
 	public function __construct(object|string $object_or_class_or_method, string $method = null);
 
+	//------------------------------------------------------------------------------------- getParent
+	public function getParent() : ?static;
+
+	//---------------------------------------------------------------------------------- getPrototype
+	public function getPrototype() : static;
+
 	//---------------------------------------------------------------------------- getPrototypeString
 	/**
 	 * The prototype of the function, beginning with first whitespaces before function and its doc
