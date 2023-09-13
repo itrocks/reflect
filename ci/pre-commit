@@ -1,0 +1,21 @@
+#!/usr/bin/php
+<?php
+
+$tools = [
+	'phpunit' => 'Unit Tests',
+	'phpcs'   => 'Coding Standards',
+	'phpstan' => 'Code Quality'
+];
+
+foreach ($tools as $tool => $caption) {
+	echo "Checking $caption..." . PHP_EOL;
+	exec(__DIR__ . DIRECTORY_SEPARATOR . $tool, $output, $return_code);
+	if ($return_code !== 0) {
+		echo PHP_EOL . join(PHP_EOL, $output) . PHP_EOL;
+		echo "Aborting commit because of $caption..." . PHP_EOL;
+		exit(1);
+	}
+	echo 'OK.' . PHP_EOL;
+}
+
+exit(0);
