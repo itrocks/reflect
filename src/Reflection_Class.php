@@ -221,58 +221,51 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	{
 		$any_inherit    = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
 		$any_visibility = ReflectionMethod::IS_ABSTRACT | ReflectionMethod::IS_FINAL
-			| ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PRIVATE
+			| ReflectionMethod::IS_PRIVATE | ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PUBLIC
 			| ReflectionMethod::IS_STATIC;
 		if (isset($filter) && (($filter & $any_visibility) === 0)) {
 			$filter |= $any_visibility;
 		}
-		$reflection_methods = [];
+		$native_methods = [];
 		foreach (parent::getMethods($filter) as $method) {
-			$reflection_methods[$method->name] = $method;
+			$native_methods[$method->name] = $method;
 		}
-		if ($reflection_methods === []) {
-			return $reflection_methods;
+		if ($native_methods === []) {
+			return $native_methods;
 		}
 		if (is_null($final_class)) {
 			$final_class = $this->name;
 		}
-		if (is_null($filter) || (($filter & $any_inherit) === $any_inherit)) {
-			$methods = [];
-			foreach ($reflection_methods as $method_name => $reflection_method) {
-				/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
-				$method = new Reflection_Method($this->name, $method_name);
-				$method->forceFinalClass($final_class);
-				$methods[$method_name] = $method;
-			}
-			return $methods;
-		}
-		if (($filter & self::T_EXTENDS) === 0) {
-			$parent_class = $this->getParentClass();
-			if ($parent_class !== false) {
-				$parent_methods = $parent_class->getMethods(
-					$filter & ~ReflectionMethod::IS_PRIVATE
-				);
-				foreach ($parent_methods as $method_name => $reflection_method) {
-					unset($reflection_methods[$method_name]);
+		if (isset($filter) && (($filter & $any_inherit) < $any_inherit)) {
+			if (($filter & self::T_EXTENDS) === 0) {
+				$parent_class = $this->getParentClass();
+				if ($parent_class !== false) {
+					$parent_methods = $parent_class->getMethods($filter & ~ReflectionMethod::IS_PRIVATE);
+					foreach ($parent_methods as $method_name => $native_method) {
+						unset($native_methods[$method_name]);
+					}
 				}
 			}
-		}
-		if (($filter & self::T_IMPLEMENTS) === 0) {
-			foreach ($reflection_methods as $method_name => $reflection_method) {
-				if ($reflection_method->getDeclaringClass()->isInterface()) {
-					unset($reflection_methods[$method_name]);
+			if (($filter & self::T_IMPLEMENTS) === 0) {
+				foreach ($this->getImplements() as $interface) {
+					foreach ($interface->getMethods(self::T_EXTENDS) as $interface_method) {
+						unset($native_methods[$interface_method->name]);
+					}
 				}
 			}
-		}
-		if (($filter & self::T_USE) === 0) {
-			foreach ($reflection_methods as $method_name => $reflection_method) {
-				if ($reflection_method->getDeclaringClass()->isTrait()) {
-					unset($reflection_methods[$method_name]);
+			if (($filter & self::T_USE) === 0) {
+				$aliases = $this->getTraitAliases();
+				foreach ($this->getTraits() as $trait) {
+					foreach ($trait->getMethods(self::T_USE) as $trait_method) {
+						if (!in_array($trait->name . '::' . $trait_method->name, $aliases, true)) {
+							unset($native_methods[$trait_method->name]);
+						}
+					}
 				}
 			}
 		}
 		$methods = [];
-		foreach ($reflection_methods as $method_name => $reflection_method) {
+		foreach ($native_methods as $method_name => $native_method) {
 			/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
 			$method = new Reflection_Method($this->name, $method_name);
 			$method->forceFinalClass($final_class);

@@ -87,10 +87,20 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		if (key_exists($this->name, $methods)) {
 			return $declaring_class;
 		}
-		$traits = $class->getTraits();
+		$aliases = $class->getTraitAliases();
+		$traits  = $class->getTraits();
 		foreach ($traits as $trait) {
 			$methods = $trait->getMethods();
-			if (isset($methods[$this->name])) {
+			if (
+				(
+					isset($methods[$this->name])
+					&& !in_array($trait->name . '::' . $this->name, $aliases, true)
+				)
+				|| (
+					is_string($alias = array_search($this->name, $aliases, true))
+					&& (substr($alias, 0, intval(strpos($alias, '::'))) === $trait->name)
+				)
+			) {
 				return $this->getDeclaringTraitInternal($trait);
 			}
 		}
