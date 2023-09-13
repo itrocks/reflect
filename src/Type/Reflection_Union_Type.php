@@ -18,4 +18,16 @@ class Reflection_Union_Type implements Reflection_Multiple_Type
 		$this->type       = $type;
 	}
 
+	//------------------------------------------------------------------------------------ __toString
+	public function __toString() : string
+	{
+		$types = [];
+		foreach ($this->getTypes() as $type) {
+			$types[] = ($type instanceof Reflection_Multiple_Type)
+				? ('(' . $type . ')')
+				: $type;
+		}
+		return join('|', $types);
+	}
+
 }

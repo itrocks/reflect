@@ -18,6 +18,12 @@ class Reflection_Named_Type implements Reflection_Type
 		$this->type       = $type;
 	}
 
+	//------------------------------------------------------------------------------------ __toString
+	public function __toString() : string
+	{
+		return $this->type->getName();
+	}
+
 	//--------------------------------------------------------------------------------------- getName
 	public function getName() : string
 	{

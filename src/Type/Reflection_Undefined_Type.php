@@ -13,6 +13,12 @@ class Reflection_Undefined_Type implements Reflection_Type
 		$this->reflection = $reflection;
 	}
 
+	//------------------------------------------------------------------------------------ __toString
+	public function __toString() : string
+	{
+		return '';
+	}
+
 	//------------------------------------------------------------------------------------ allowsNull
 	public function allowsNull() : bool
 	{

@@ -52,6 +52,9 @@ abstract class Types extends ReflectionUnionType
 		$this->types_null_2 = null;
 	}
 
+	//------------------------------------------------------------------------------- classReturnType
+	abstract public function classReturnType() : Types;
+
 	//-------------------------------------------------------------------------------------- exhaustA
 	/** @phpstan-ignore-next-line iterable is here for testing purpose */
 	abstract public function exhaustA()
@@ -62,5 +65,12 @@ abstract class Types extends ReflectionUnionType
 	/** @phpstan-ignore-next-line iterable is here for testing purpose */
 	abstract public function exhaustB()
 	: Types|static|self|ReflectionProperty|(ReflectionMethod&ReflectionClass)|iterable|string|parent|null|int|float|callable|true;
+
+	//---------------------------------------------------------------------------------- noReturnType
+	/** @phpstan-ignore-next-line iterable is here for testing purpose */
+	abstract public function noReturnType();
+
+	//-------------------------------------------------------------------------------- voidReturnType
+	abstract public function voidReturnType() : void;
 
 }

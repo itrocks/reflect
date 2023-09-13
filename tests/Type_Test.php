@@ -49,7 +49,7 @@ class Type_Test extends TestCase
 			function(Reflection_Named_Type $type) { return $type->getName(); },
 			$type->getAllTypes()
 		);
-		self::assertEquals($all_types, explode(',', $type_names), $key . ' Bad types');
+		self::assertEquals(explode(',', $type_names), $all_types, $key . ' Bad types');
 	}
 
 	//----------------------------------------------------------------------------------- testGetName
@@ -151,8 +151,8 @@ class Type_Test extends TestCase
 		$reflect_built_in = ($reflect_type instanceof Reflection_Named_Type)
 			? $reflect_type->isBuiltin()
 			: null;
-		self::assertEquals($native_built_in,  $expected, $message . ' Bad native isBuiltin() result');
-		self::assertEquals($reflect_built_in, $expected, $message . ' Bad Reflect isBuiltin() result');
+		self::assertEquals($expected, $native_built_in,  $message . ' Bad native isBuiltin() result');
+		self::assertEquals($expected, $reflect_built_in, $message . ' Bad Reflect isBuiltin() result');
 		if (!($reflect_type instanceof Reflection_Multiple_Type)) {
 			return;
 		}
@@ -161,13 +161,24 @@ class Type_Test extends TestCase
 		$reflect_type      = reset($reflect_types);
 		while ($reflect_type !== false) {
 			self::assertEquals(
-				$reflect_type->isBuiltin(),
 				$expected_built_in,
+				$reflect_type->isBuiltin(),
 				$message . ' Bad type ' . key($reflect_types) . ':' . json_encode($reflect_type)
 			);
 			$expected_built_in = next($expected_in_types);
 			$reflect_type      = next($reflect_types);
 		}
+	}
+
+	//---------------------------------------------------------------------------------- testToString
+	/** @throws ReflectionException */
+	#[TestWith([0, 'classReturnType', Types::class])]
+	#[TestWith([1, 'exhaustA', 'parent|Traversable|(ReflectionClass&ReflectionMethod)|ReflectionProperty|self|ITRocks\\Reflect\\Tests\\Types|static|callable|array|string|int|float|bool|null'])]
+	#[TestWith([2, 'exhaustB', 'ITRocks\\Reflect\\Tests\\Types|self|ReflectionProperty|(ReflectionMethod&ReflectionClass)|Traversable|parent|static|callable|array|string|int|float|true|null'])]
+	public function testToString(int $key, string $method_name, string $expected) : void
+	{
+		$type = (new Reflection_Method(Types::class, $method_name))->getReturnType();
+		self::assertEquals($expected, strval($type), "data set #$key");
 	}
 
 }

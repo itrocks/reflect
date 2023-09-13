@@ -1,7 +1,9 @@
 <?php
 namespace ITRocks\Reflect\Type;
 
-interface Reflection_Type
+use Stringable;
+
+interface Reflection_Type extends Stringable
 {
 
 	//------------------------------------------------------------------------------------ allowsNull

@@ -18,4 +18,10 @@ class Reflection_Intersection_Type implements Reflection_Multiple_Type
 		$this->type       = $type;
 	}
 
+	//------------------------------------------------------------------------------------ __toString
+	public function __toString() : string
+	{
+		return join('&', $this->getTypes());
+	}
+
 }
