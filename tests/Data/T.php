@@ -3,6 +3,7 @@ namespace ITRocks\Reflect\Tests\Data;
 
 trait T
 {
+	use TT;
 
 	//----------------------------------------------------------------------------- publicTraitMethod
 	/** T::publicTraitMethod */

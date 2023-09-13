@@ -8,4 +8,8 @@ class R
 	public function publicRootMethod() : void
 	{}
 
+	//-------------------------------------------------------------------- publicRootOverriddenMethod
+	public function publicRootOverriddenMethod() : void
+	{}
+
 }

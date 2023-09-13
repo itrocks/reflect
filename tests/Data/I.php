@@ -8,4 +8,7 @@ interface I
 	/** I::publicInterfaceMethod */
 	public function publicInterfaceMethod() : void;
 
+	//----------------------------------------------------------------------------- withoutDocComment
+	public function withoutDocComment() : void;
+
 }

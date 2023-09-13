@@ -5,6 +5,11 @@ abstract class P extends R implements I, PI
 {
 	use PT;
 
+	//--------------------------------------------------------------------------- privateParentMethod
+	/** @phpstan-ignore-next-line unused, but we don't care */
+	private function privateParentMethod() : void
+	{}
+
 	//------------------------------------------------------------------- publicParentInterfaceMethod
 	/** P::publicParentInterfaceMethod */
 	public function publicParentInterfaceMethod() : void
@@ -13,6 +18,10 @@ abstract class P extends R implements I, PI
 	//---------------------------------------------------------------------------- publicParentMethod
 	/** P::publicParentMethod */
 	public function publicParentMethod() : void
+	{}
+
+	//----------------------------------------------------------------------------- withoutDocComment
+	public function withoutDocComment() : void
 	{}
 
 }

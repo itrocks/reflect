@@ -17,4 +17,8 @@ class O extends P implements I, OI
 		parent::publicParentInterfaceMethod();
 	}
 
+	//----------------------------------------------------------------------------- withoutDocComment
+	public function withoutDocComment() : void
+	{}
+
 }

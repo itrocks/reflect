@@ -2,6 +2,7 @@
 namespace ITRocks\Reflect;
 
 use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Reflection_Undefined_Type;
 use ReflectionException;
 use ReflectionMethod;
 use ReturnTypeWillChange;
@@ -70,38 +71,41 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		if (isset($this->cache['declaring_trait'])) {
 			return $this->cache['declaring_trait'];
 		}
-		$declaring_trait = $this->getDeclaringTraitInternal($this->getDeclaringClass());
+		$declaring_trait = $this->getDeclaringClass();
+		if (!$declaring_trait->isInterface()) {
+			$declaring_trait = $this->getDeclaringTraitInternal($declaring_trait, $this->name);
+		}
 		$this->cache['declaring_trait'] = $declaring_trait;
 		return $declaring_trait;
 	}
 
 	//--------------------------------------------------------------------- getDeclaringTraitInternal
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param Reflection_Class<object> $class
 	 * @return Reflection_Class<object>
 	 */
-	private function getDeclaringTraitInternal(Reflection_Class $class) : Reflection_Class
+	private function getDeclaringTraitInternal(Reflection_Class $class, string $name)
+		: Reflection_Class
 	{
-		$declaring_class = $this->getDeclaringClass();
-		$methods         = $declaring_class->getMethods(0);
-		if (key_exists($this->name, $methods)) {
-			return $declaring_class;
+		if (is_null($alias = $class->getTraitAliases()[$name] ?? null)) {
+			$traits = $class->getTraits();
 		}
-		$aliases = $class->getTraitAliases();
-		$traits  = $class->getTraits();
+		else {
+			/** @var class-string $trait_name */
+			[$trait_name, $name] = explode('::', $alias);
+			/** @noinspection PhpUnhandledExceptionInspection getTraits */
+			$traits = [static::newReflectionClass($trait_name)];
+		}
 		foreach ($traits as $trait) {
-			$methods = $trait->getMethods();
+			$method = $trait->getMethods(self::T_USE)[$name] ?? null;
 			if (
-				(
-					isset($methods[$this->name])
-					&& !in_array($trait->name . '::' . $this->name, $aliases, true)
-				)
-				|| (
-					is_string($alias = array_search($this->name, $aliases, true))
-					&& (substr($alias, 0, intval(strpos($alias, '::'))) === $trait->name)
-				)
+				isset($method)
+				&& ($method->getEndLine()   === $this->getEndLine())
+				&& ($method->getFileName()  === $this->getFileName())
+				&& ($method->getStartLine() === $this->getStartLine())
 			) {
-				return $this->getDeclaringTraitInternal($trait);
+				return $this->getDeclaringTraitInternal($method->getDeclaringClass(), $method->name);
 			}
 		}
 		return $class;
@@ -123,61 +127,51 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
-			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
+			$doc_comment = '/** FROM ' . $this->getDeclaringTraitName() . " */\n" . $doc_comment;
 		}
 		if ($filter === 0) {
 			return $doc_comment;
 		}
-		if ($cache && isset($this->cache['doc_comment'][$filter])) {
-			return $this->cache['doc_comment'][$filter];
+		static $depth = 0;
+		if ($cache && ($depth === 0)) {
+			/** @var int<1,max> $cache_index */
+			$cache_index = $filter | intval($locate);
+			if (isset($this->cache['doc_comment'][$cache_index])) {
+				return $this->cache['doc_comment'][$cache_index];
+			}
 		}
+		$depth ++;
 		/** @var list<string> $already */
 		static $already = [];
-		static $depth   = 0;
-		if ($depth === 0) {
-			$already[] = $this->class;
-		}
+		$already[] = $this->class;
 		if (($filter & self::T_IMPLEMENTS) > 0) {
 			foreach ($this->getFinalClass()->getImplements() as $interface) {
 				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {
 					continue;
 				}
-				$prototype = $interface->getMethod($this->name);
-				$already[] = $interface->name;
-				$append    = $prototype->getDocComment($filter, $cache, $locate);
+				$append = $interface->getMethod($this->name)->getDocComment($filter, $cache, $locate);
 				if ($append !== false) {
 					$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
 				}
 			}
 		}
-		$has_prototype  = $this->hasPrototype();
-		/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
-		$prototype       = $has_prototype ? $this->getPrototype() : null;
-		$prototype_class = $prototype?->getDeclaringClass();
 		if (
-			(($filter & self::T_USE) > 0)
-			&& isset($prototype_class)
-			&& $prototype_class->isTrait()
-			&& in_array($prototype->class, $this->getFinalClass()->getTraitNames(), true)
+			(($filter & self::T_EXTENDS) > 0)
+			&& !is_null($parent = $this->getParent())
+			&& !in_array($parent->class, $already, true)
+			&& ((($filter & self::T_USE) > 0) || !$parent->getDeclaringTrait()->isTrait())
 		) {
-			$append = $prototype->getDocComment($filter, $cache, $locate);
-			if ($append !== false) {
-				$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
-			}
-		}
-		if ((($filter & self::T_EXTENDS) > 0) && !is_null($parent = $this->getParent())) {
-			$depth ++;
 			$append = $parent->getDocComment($filter, $cache, $locate);
-			$depth --;
-			if ($depth === 0) {
-				$already = [];
-			}
 			if ($append !== false) {
 				$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
 			}
 		}
-		if ($cache) {
-			$this->cache['doc_comment'][$filter] = $doc_comment;
+		$depth --;
+		if ($depth === 0) {
+			$already = [];
+			if (isset($cache_index)) {
+				$this->cache['doc_comment'][$cache_index] = $doc_comment;
+			}
 		}
 		return $doc_comment;
 	}
@@ -217,16 +211,41 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		return $final_class;
 	}
 
+	//--------------------------------------------------------------------------------- getParameters
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return array<string,Reflection_Parameter>
+	 */
+	public function getParameters() : array
+	{
+		$parameters = [];
+		foreach (parent::getParameters() as $parameter) {
+			/** @noinspection PhpUnhandledExceptionInspection getParameters */
+			$parameters[$parameter->name] = static::newReflectionParameter(
+				[$this->getFinalClassName(), $this->name], $parameter->name
+			);
+		}
+		return $parameters;
+	}
+
 	//------------------------------------------------------------------------------------- getParent
 	public function getParent() : ?static
 	{
-		$parent_class = $this->getFinalClass()->getParentClass();
-		if (($parent_class === false) || !$parent_class->hasMethod($this->name)) {
-			return null;
+		$method = $this;
+		while ($method->class === $this->class) {
+			$parent_class = $method->getFinalClass()->getParentClass();
+			if (($parent_class === false) || !$parent_class->hasMethod($method->name)) {
+				/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
+				return $this->hasPrototype() ? $this->getPrototype() : null;
+			}
+			$method = $parent_class->getMethod($method->name);
+			if ($method->isPrivate()) {
+				/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
+				return $this->hasPrototype() ? $this->getPrototype() : null;
+			}
 		}
-		$parent = $parent_class->getMethod($this->name);
 		/** @noinspection PhpUnhandledExceptionInspection from getMethod */
-		return new static($parent->class, $parent->name);
+		return new static($method->class, $method->name);
 	}
 
 	//---------------------------------------------------------------------------------- getPrototype
@@ -244,13 +263,15 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	 */
 	public function getPrototypeString() : string
 	{
-		$parameters = $this->getParameters();
+		$parameters  = $this->getParameters();
+		$return_type = $this->getReturnType();
 		return ($this->isAbstract() ? 'abstract ' : '')
 			. ($this->isPublic() ? 'public ' : ($this->isProtected() ? 'protected ' : 'private '))
 			. ($this->isStatic() ? 'static ' : '')
 			. 'function ' . $this->name
 			. ($this->returnsReference() ? '& ' : '')
-			. '(' . join(', ', $parameters) . ")\n" . '{';
+			. '(' . join(', ', $parameters) . ')'
+			. (($return_type instanceof Reflection_Undefined_Type) ? '' : (' : ' . $return_type));
 	}
 
 	//--------------------------------------------------------------------------------- getReturnType
