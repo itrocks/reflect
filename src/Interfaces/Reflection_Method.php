@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Interfaces;
 
+use ITRocks\Reflect\Reflection_Parameter;
 use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
@@ -16,6 +17,10 @@ interface Reflection_Method extends Reflection_Class_Component
 	 * @throws ReflectionException
 	 */
 	public function __construct(object|string $object_or_class_or_method, string $method = null);
+
+	//--------------------------------------------------------------------------------- getParameters
+	/** @return array<string,Reflection_Parameter> */
+	public function getParameters() : array;
 
 	//------------------------------------------------------------------------------------- getParent
 	public function getParent() : ?static;

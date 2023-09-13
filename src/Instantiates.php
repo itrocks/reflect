@@ -44,6 +44,17 @@ trait Instantiates
 		return new Reflection_Method($class, $method);
 	}
 
+	//------------------------------------------------------------------------ newReflectionParameter
+	/**
+	 * @param array{object|string,string}|object|string $function
+	 * @throws ReflectionException
+	 */
+	public static function newReflectionParameter(array|object|string $function, int|string $param)
+		: Reflection_Parameter
+	{
+		return new Reflection_Parameter($function, $param);
+	}
+
 	//------------------------------------------------------------------------- newReflectionProperty
 	/**
 	 * @param class-string $class

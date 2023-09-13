@@ -41,6 +41,11 @@ interface Reflection
 	/** @param class-string $class */
 	public static function newReflectionMethod(string $class, string $method) : Reflection_Method;
 
+	//------------------------------------------------------------------------ newReflectionParameter
+	/** @param array{object|string,string}|object|string $function */
+	public static function newReflectionParameter(array|object|string $function, int|string $param)
+		: Reflection_Parameter;
+
 	//------------------------------------------------------------------------- newReflectionProperty
 	/** @param class-string $class */
 	public static function newReflectionProperty(string $class, string $property)
