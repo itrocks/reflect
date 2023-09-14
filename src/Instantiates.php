@@ -18,7 +18,7 @@ trait Instantiates
 			return new Reflection_Class($class);
 		}
 		return str_starts_with($member, '$')
-			? new Reflection_Property($class, $member)
+			? new Reflection_Property($class, substr($member, 1))
 			: new Reflection_Method($class, $member);
 	}
 

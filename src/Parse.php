@@ -1,6 +1,8 @@
 <?php
 namespace ITRocks\Reflect;
 
+use ReflectionException;
+
 abstract class Parse
 {
 
@@ -9,13 +11,13 @@ abstract class Parse
 
 	//------------------------------------------------------------------------------------- className
 	/** @param list<array{int,string,int}|string> $tokens */
-	public static function className(array $tokens, string $namespace) : string
+	public static function className(array &$tokens, string $namespace) : string
 	{
 		do {
 			$token = next($tokens);
 			if ($token === false) return '';
 		} while ($token[0] !== T_STRING);
-		return $namespace . '\\' . $token[1];
+		return ($namespace === '') ? $token[1] : ($namespace . '\\' . $token[1]);
 	}
 
 	//--------------------------------------------------------------------------------- namespaceName
@@ -84,6 +86,7 @@ abstract class Parse
 	 * @param array{int,string,int} $token
 	 * @param array<string,string>  $namespace_use
 	 * @return class-string
+	 * @throws ReflectionException
 	 */
 	public static function referenceClassName(array $token, array $namespace_use, string $namespace)
 		: string
@@ -109,10 +112,7 @@ abstract class Parse
 				}
 				break;
 			default:
-				trigger_error(
-					'Called ' . __CLASS__ . '::' . __METHOD__ . ' with an invalid token',
-					E_USER_ERROR
-				);
+				throw new ReflectionException('Called ' . __METHOD__ . ' with an invalid token');
 		}
 		/** @var class-string $name */
 		return $name;

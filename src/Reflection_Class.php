@@ -102,7 +102,10 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//----------------------------------------------------------------------------- getImplementNames
-	/** @return list<class-string> */
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return list<class-string>
+	 */
 	public function getImplementNames() : array
 	{
 		if ($this->isInterface() || $this->isTrait()) {
@@ -130,6 +133,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			if (in_array(
 				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
 			)) {
+				/** @noinspection PhpUnhandledExceptionInspection Valid $token */
 				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
 			}
 			$token = next($tokens);
