@@ -15,6 +15,7 @@ use ITRocks\Reflect\Tests\Data\MP;
 use ITRocks\Reflect\Tests\Data\MPT;
 use ITRocks\Reflect\Tests\Data\MT;
 use ITRocks\Reflect\Tests\Data\MTT;
+use ITRocks\Reflect\Tests\Data\Namespace_Use;
 use ITRocks\Reflect\Tests\Data\P;
 use ITRocks\Reflect\Tests\Data\PI;
 use ITRocks\Reflect\Tests\Data\PT;
@@ -312,6 +313,41 @@ class Reflection_Class_Test extends TestCase
 			$line = join(' :: ', $line);
 		}
 		self::assertEquals($expected, $actual, "Data set #$key");
+	}
+
+	//--------------------------------------------------------------------------- testGetNamespaceUse
+	public function testGetNamespaceUse() : void
+	{
+		$class    = new Reflection_Class(Namespace_Use::class);
+		$expected = [
+			'T'                => 'A',
+			'C'                => 'C',
+			'Reflection_Class' => 'ITRocks\Reflect\Reflection_Class',
+			'T1'               => Parse_Test::class,
+			'Types'            => Types::class
+		];
+		$actual = $class->getNamespaceUse();
+		self::assertEquals($expected, $actual);
+		$actual = $class->getNamespaceUse();
+		self::assertEquals($expected, $actual, 'cached');
+	}
+
+	//--------------------------------------------------------------------- testGetParentClassAndName
+	/**
+	 * @param class-string $class_name
+	 * @param class-string $expected
+	 * @throws ReflectionException
+	 */
+	#[TestWith([A::class, ''])]
+	#[TestWith([C::class, P::class])]
+	#[TestWith([I::class, ''])]
+	#[TestWith([T::class, ''])]
+	public function testGetParentClassAndName(string $class_name, string $expected) : void
+	{
+		$class = new Reflection_Class($class_name);
+		$parent_class = $class->getParentClass();
+		self::assertEquals($expected, ($parent_class === false) ? '' : $parent_class->name, "$class_name class");
+		self::assertEquals($expected, $class->getParentClassName(), "$class_name name");
 	}
 
 }
