@@ -1,7 +1,8 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
-interface I
+/** I:DC */
+interface I extends II
 {
 
 	//------------------------------------------------------------------------- publicInterfaceMethod

@@ -1,9 +1,14 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
+/** C:DC */
 class C extends P implements I
 {
 	use T { publicTraitOverriddenMethod as publicRenamedTraitOverriddenMethod; }
+
+	//----------------------------------------------------------------------------------- __construct
+	public function __construct()
+	{}
 
 	//--------------------------------------------------------------------------- privateParentMethod
 	public function privateParentMethod() : void

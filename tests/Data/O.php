@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
+/** O:DC */
 class O extends P implements I, OI
 {
 	use T, OT;

@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
+/** PT:DC */
 trait PT
 {
 

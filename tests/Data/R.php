@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
+/** R:DC */
 class R
 {
 	

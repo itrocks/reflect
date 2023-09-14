@@ -141,17 +141,17 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 			}
 		}
 		$depth ++;
-		/** @var list<string> $already */
+		/** @var list<class-string> $already */
 		static $already = [];
 		$already[] = $this->class;
 		if (($filter & self::T_IMPLEMENTS) > 0) {
-			foreach ($this->getFinalClass()->getImplements() as $interface) {
+			foreach ($this->getFinalClass()->getInterfaces(0) as $interface) {
 				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {
 					continue;
 				}
 				$append = $interface->getMethod($this->name)->getDocComment($filter, $cache, $locate);
 				if ($append !== false) {
-					$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
+					$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
 				}
 			}
 		}
@@ -163,7 +163,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		) {
 			$append = $parent->getDocComment($filter, $cache, $locate);
 			if ($append !== false) {
-				$doc_comment = ($doc_comment === false) ? $append : $doc_comment . "\n" . $append;
+				$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
 			}
 		}
 		$depth --;

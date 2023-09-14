@@ -1,6 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests\Data;
 
+/** T:DC */
 trait T
 {
 	use TT;

@@ -181,9 +181,9 @@ class Reflection_Method_Test extends TestCase
 		$actual = $reflection_method->getDocComment($filter, false);
 		self::assertEquals($expected, $actual, "data set #$key");
 		$actual = $reflection_method->getDocComment($filter);
-		self::assertEquals($expected, $actual, "data set #$key cache read");
-		$actual = $reflection_method->getDocComment($filter);
 		self::assertEquals($expected, $actual, "data set #$key cache write");
+		$actual = $reflection_method->getDocComment($filter);
+		self::assertEquals($expected, $actual, "data set #$key cache read");
 	}
 
 	//----------------------------------------------------------------------- testGetDocCommentLocate

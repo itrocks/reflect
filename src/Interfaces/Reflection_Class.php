@@ -34,21 +34,15 @@ interface Reflection_Class extends Reflection
 	/** @return array<string,mixed> Gets default value of properties */
 	public function getDefaultProperties() : array;
 
-	//----------------------------------------------------------------------------- getImplementNames
-	/** @return list<class-string> */
-	public function getImplementNames() : array;
-
-	//--------------------------------------------------------------------------------- getImplements
-	/** @return array<class-string,static> */
-	public function getImplements() : array;
-
 	//----------------------------------------------------------------------------- getInterfaceNames
 	/** @return list<class-string> */
-	public function getInterfaceNames(int $filter = T_EXTENDS) : array;
+	public function getInterfaceNames(int $filter = Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS)
+		: array;
 
 	//--------------------------------------------------------------------------------- getInterfaces
 	/** @return array<class-string,static> */
-	public function getInterfaces(int $filter = T_EXTENDS) : array;
+	public function getInterfaces(int $filter = Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS)
+		: array;
 
 	//------------------------------------------------------------------------------------- getMethod
 	/** @throws ReflectionException */
