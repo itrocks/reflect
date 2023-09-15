@@ -14,7 +14,7 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
-	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:string|false,'parent'?:static|null} */
+	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'parent'?:static|null} */
 	private array $cache = [];
 
 	//---------------------------------------------------------------------------------- $final_class
@@ -102,20 +102,54 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
-			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
+			$doc_comment = '/** FROM ' . $this->getDeclaringTraitName() . " */\n" . $doc_comment;
 		}
 		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
 		}
-		if ($cache && isset($this->cache['doc_comment'])) {
-			return $this->cache['doc_comment'];
+		static $depth = 0;
+		if ($cache && ($depth === 0)) {
+			/** @var int<1,max> $cache_index */
+			$cache_index = $filter | intval($locate);
+			if (isset($this->cache['doc_comment'][$cache_index])) {
+				return $this->cache['doc_comment'][$cache_index];
+			}
 		}
-		$parent_property = $this->getParent();
-		if (isset($parent_property)) {
-			$doc_comment .= $parent_property->getDocComment($filter, $cache, $locate);
+		static $already = [];
+		$depth ++;
+		/** @var list<class-string> $already */
+		$already[] = $this->getDeclaringTraitName();
+		if (($filter & self::T_USE) > 0) {
+			foreach ($this->getFinalClass()->getTraits() as $trait) {
+				if (!$trait->hasProperty($this->name)) {
+					continue;
+				}
+				$property = $trait->getProperty($this->name);
+				if (in_array($property->getDeclaringTraitName(), $already, true)) {
+					continue;
+				}
+				$append = $trait->getProperty($this->name)->getDocComment($filter, $cache, $locate);
+				if ($append !== false) {
+					$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
+				}
+			}
 		}
-		if ($cache) {
-			$this->cache['doc_comment'] = $doc_comment;
+		if (
+			(($filter & self::T_EXTENDS) > 0)
+			&& (!is_null($parent = $this->getParent()))
+			&& !in_array($parent->class, $already, true)
+		) {
+			$append = $parent->getDocComment($filter, $cache, $locate);
+			if ($append !== false) {
+				$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
+			}
+		}
+		$depth --;
+		if ($depth === 0) {
+			$already = [];
+		}
+		if (isset($cache_index)) {
+			$this->cache['doc_comment'][$cache_index] = $doc_comment;
 		}
 		return $doc_comment;
 	}

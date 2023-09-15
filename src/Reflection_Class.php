@@ -31,6 +31,76 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		parent::__construct($object_or_class);
 	}
 
+	//---------------------------------------------------------------------------------- getClassList
+	/** @return array<class-string,static> */
+	public function getClassList(int $filter = self::T_INHERIT) : array
+	{
+		$class_list = [$this->name => $this];
+		if (($filter & self::T_USE) > 0) {
+			$class_list += $this->getTraits(self::T_USE);
+		}
+		if (($filter & self::T_IMPLEMENTS) > 0) {
+			$class_list += $this->getInterfaces(self::T_IMPLEMENTS);
+		}
+		if (($filter & self::T_EXTENDS) > 0) {
+			$parent = $this->getParentClass();
+			if ($parent !== false) {
+				$class_list += $parent->getClassList($filter);
+			}
+		}
+		return $class_list;
+	}
+
+	//----------------------------------------------------------------------------- getClassListNames
+	/** @return list<class-string> */
+	public function getClassListNames(int $filter = self::T_INHERIT) : array
+	{
+		$class_list = [$this->name];
+		if (($filter & self::T_USE) > 0) {
+			$class_list = array_merge(
+				$class_list, array_diff($this->getTraitNames(self::T_USE), $class_list)
+			);
+		}
+		if (($filter & self::T_IMPLEMENTS) > 0) {
+			$class_list = array_merge(
+				$class_list, array_diff($this->getInterfaceNames(self::T_IMPLEMENTS), $class_list)
+			);
+		}
+		if (($filter & self::T_EXTENDS) > 0) {
+			$parent = $this->getParentClass();
+			if ($parent !== false) {
+				$class_list = array_merge(
+					$class_list, array_diff($parent->getClassListNames($filter), $class_list)
+				);
+			}
+		}
+		return $class_list;
+	}
+
+	//---------------------------------------------------------------------------------- getClassTree
+	/** @return array<class-string,array<class-string,array<class-string,array<class-string,mixed>>>> */
+	public function getClassTree(int $filter = self::T_INHERIT) : array
+	{
+		$class_tree = [];
+		if (($filter & self::T_USE) > 0) {
+			foreach ($this->getTraits() as $trait) {
+				$class_tree += $trait->getClassTree($filter);
+			}
+		}
+		if (($filter & self::T_IMPLEMENTS) > 0) {
+			foreach ($this->getInterfaces(self::T_LOCAL) as $interface) {
+				$class_tree += $interface->getClassTree($filter);
+			}
+		}
+		if (($filter & self::T_EXTENDS) > 0) {
+			$parent = $this->getParentClass();
+			if ($parent !== false) {
+				$class_tree += $parent->getClassTree($filter);
+			}
+		}
+		return [$this->name => $class_tree];
+	}
+
 	//-------------------------------------------------------------------------------- getConstructor
 	public function getConstructor() : ?Reflection_Method
 	{
@@ -107,6 +177,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		$already[] = $this->name;
 		if ((($filter & self::T_USE) > 0) && !$this->isInterface()) {
 			foreach ($this->getTraits() as $trait) {
+				if (in_array($trait->name, $already, true)) {
+					continue;
+				}
 				$append = $trait->getDocComment($filter, $cache, $locate);
 				if ($append !== false) {
 					$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
@@ -437,13 +510,17 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if (($filter & self::T_USE) > 0) {
 			foreach ($trait_names as $trait_name) {
 				/** @noinspection PhpUnhandledExceptionInspection Native getTraitNames */
-				$trait_names = array_merge($trait_names, (new static($trait_name))->getTraitNames($filter));
+				$trait_names = array_merge(
+					$trait_names, array_diff((new static($trait_name))->getTraitNames($filter), $trait_names)
+				);
 			}
 		}
 		if (($filter & self::T_EXTENDS) > 0) {
 			$parent = $this->getParentClass();
 			if ($parent !== false) {
-				$trait_names = array_merge($trait_names, $parent->getTraitNames($filter));
+				$trait_names = array_merge(
+					$trait_names, array_diff($parent->getTraitNames($filter), $trait_names)
+				);
 			}
 		}
 		return $trait_names;

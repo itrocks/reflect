@@ -23,6 +23,7 @@ use ITRocks\Reflect\Tests\Data\PI;
 use ITRocks\Reflect\Tests\Data\PT;
 use ITRocks\Reflect\Tests\Data\R;
 use ITRocks\Reflect\Tests\Data\T;
+use ITRocks\Reflect\Tests\Data\TO;
 use ITRocks\Reflect\Tests\Data\TT;
 use NS\B\CB;
 use NS\B\CD;
@@ -50,6 +51,49 @@ class Reflection_Class_Test extends TestCase
 		$this->expectException(ReflectionException::class);
 		/** @phpstan-ignore-next-line Testing invalid call */
 		new Reflection_Class('Unknown_little_thing');
+	}
+
+	//---------------------------------------------------------------------- testGetClassListAndNames
+	/**
+	 * @param int                $key
+	 * @param int<0,max>         $filter
+	 * @param list<class-string> $expected
+	 */
+	#[TestWith([0, Reflection::T_LOCAL, [C::class]])]
+	#[TestWith([1, Reflection::T_EXTENDS, [C::class, P::class, R::class]])]
+	#[TestWith([2, Reflection::T_IMPLEMENTS, [C::class, I::class, II::class]])]
+	#[TestWith([3, Reflection::T_USE, [C::class, T::class, TO::class, TT::class]])]
+	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class, I::class, II::class, P::class, PI::class, R::class]])]
+	#[TestWith([5, Reflection::T_EXTENDS | Reflection::T_USE, [C::class, T::class, TO::class, TT::class, P::class, PT::class, R::class]])]
+	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE, [C::class, T::class, TO::class, TT::class, I::class, II::class]])]
+	#[TestWith([7, Reflection::T_INHERIT, [C::class, T::class, TO::class, TT::class, I::class, II::class, P::class, PT::class, PI::class, R::class]])]
+	public function testGetClassListAndNames(int $key, int $filter, array $expected) : void
+	{
+		$class = new Reflection_Class(C::class);
+		$list  = $class->getClassListNames($filter);
+		self::assertEquals($expected, $list, "data set #$key names");
+		$list = array_keys($class->getClassList($filter));
+		self::assertEquals($expected, $list, "data set #$key list");
+	}
+
+	//------------------------------------------------------------------------------ testGetClassTree
+	/**
+	 * @param int        $key
+	 * @param int<0,max> $filter
+	 * @param array<class-string,array<class-string,array<class-string,array<class-string,mixed>>>> $expected
+	 */
+	#[TestWith([0, Reflection::T_LOCAL,                              [C::class => []]])]
+	#[TestWith([1, Reflection::T_EXTENDS,                            [C::class => [P::class => [R::class => []]]]])]
+	#[TestWith([2, Reflection::T_IMPLEMENTS,                         [C::class => [I::class => [II::class => []]]]])]
+	#[TestWith([3, Reflection::T_USE,                                [C::class => [T::class => [TT::class => []], TO::class => []]]])]
+	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class => [I::class => [II::class => []], P::class => [PI::class => [], I::class => [II::class => []], R::class => []]]]])]
+	#[TestWith([5, Reflection::T_EXTENDS | Reflection::T_USE,        [C::class => [T::class => [TT::class => []], P::class => [PT::class => [TO::class => []], R::class => []], TO::class => []]]])]
+	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE,     [C::class => [T::class => [TT::class => []], I::class => [II::class => []], TO::class => []]]])]
+	#[TestWith([7, Reflection::T_INHERIT,                            [C::class => [T::class => [TT::class => []], I::class => [II::class => []], P::class => [PT::class => [TO::class => []], PI::class => [], I::class => [II::class => []], R::class => []], TO::class => []]]])]
+	public function testGetClassTree(int $key, int $filter, array $expected) : void
+	{
+		$class = new Reflection_Class(C::class);
+		self::assertEquals($expected, $class->getClassTree($filter), "data set #$key");
 	}
 
 	//---------------------------------------------------------------------------- testGetConstructor
@@ -417,59 +461,79 @@ class Reflection_Class_Test extends TestCase
 	 * @throws ReflectionException
 	 */
 	#[TestWith([0, MC::class, Reflection::T_LOCAL, [
-		[MC::class,  'private_class_property',       MC::class, MC::class],
-		[MC::class,  'private_trait_trait_property', MC::class, MC::class],
-		[MC::class,  'protected_class_property',     MC::class, MC::class],
-		[MC::class,  'public_class_property',        MC::class, MC::class]
+		[MC::class,  'private_class_property',                  MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',            MC::class, MC::class],
+		[MC::class,  'protected_class_property',                MC::class, MC::class],
+		[MC::class,  'public_class_property',                   MC::class, MC::class],
+		[MC::class,  'public_parent_overridden_property',       MC::class, MC::class],
+		[MC::class,  'public_parent_trait_overridden_property', MC::class, MC::class],
+		[MC::class,  'public_trait_overridden_property',        MC::class, MC::class],
+		[MC::class,  'public_trait_trait_overridden_property',  MC::class, MC::class]
 	]])]
 	#[TestWith([1, MC::class, Reflection::T_EXTENDS, [
-		[MC::class,  'private_class_property',          MC::class, MC::class],
-		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
-		[MC::class,  'protected_class_property',        MC::class, MC::class],
-		[MC::class,  'public_class_property',           MC::class, MC::class],
-		[MP::class,  'protected_parent_property',       MC::class, MP::class],
-		[MP::class,  'public_parent_property',          MC::class, MP::class]
+		[MC::class,  'private_class_property',                  MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',            MC::class, MC::class],
+		[MC::class,  'protected_class_property',                MC::class, MC::class],
+		[MC::class,  'public_class_property',                   MC::class, MC::class],
+		[MC::class,  'public_parent_overridden_property',       MC::class, MC::class],
+		[MC::class,  'public_parent_trait_overridden_property', MC::class, MC::class],
+		[MC::class,  'public_trait_overridden_property',        MC::class, MC::class],
+		[MC::class,  'public_trait_trait_overridden_property',  MC::class, MC::class],
+		[MP::class,  'protected_parent_property',               MC::class, MP::class],
+		[MP::class,  'public_parent_property',                  MC::class, MP::class]
 	]])]
 	#[TestWith([2, MC::class, Reflection::T_USE, [
-		[MC::class,  'private_class_property',          MC::class, MC::class],
-		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
-		[MC::class,  'protected_class_property',        MC::class, MC::class],
-		[MC::class,  'public_class_property',           MC::class, MC::class],
-		[MC::class,  'private_trait_property',          MC::class, MT::class],
-		[MC::class,  'protected_trait_property',        MC::class, MT::class],
-		[MC::class,  'public_trait_property',           MC::class, MT::class],
-		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
-		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+		[MC::class,  'private_class_property',                  MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',            MC::class, MC::class],
+		[MC::class,  'protected_class_property',                MC::class, MC::class],
+		[MC::class,  'public_class_property',                   MC::class, MC::class],
+		[MC::class,  'public_parent_overridden_property',       MC::class, MC::class],
+		[MC::class,  'public_parent_trait_overridden_property', MC::class, MC::class],
+		[MC::class,  'public_trait_overridden_property',        MC::class, MC::class],
+		[MC::class,  'public_trait_trait_overridden_property',  MC::class, MC::class],
+		[MC::class,  'private_trait_property',                  MC::class, MT::class],
+		[MC::class,  'protected_trait_property',                MC::class, MT::class],
+		[MC::class,  'public_trait_property',                   MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',          MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',             MC::class, MTT::class]
 	]])]
 	#[TestWith([3, MC::class, Reflection::T_INHERIT, [
-		[MC::class,  'private_class_property',          MC::class, MC::class],
-		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
-		[MC::class,  'protected_class_property',        MC::class, MC::class],
-		[MC::class,  'public_class_property',           MC::class, MC::class],
-		[MP::class,  'protected_parent_property',       MC::class, MP::class],
-		[MP::class,  'public_parent_property',          MC::class, MP::class],
-		[MP::class,  'protected_parent_trait_property', MC::class, MPT::class],
-		[MP::class,  'public_parent_trait_property',    MC::class, MPT::class],
-		[MC::class,  'private_trait_property',          MC::class, MT::class],
-		[MC::class,  'protected_trait_property',        MC::class, MT::class],
-		[MC::class,  'public_trait_property',           MC::class, MT::class],
-		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
-		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+		[MC::class,  'private_class_property',                  MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',            MC::class, MC::class],
+		[MC::class,  'protected_class_property',                MC::class, MC::class],
+		[MC::class,  'public_class_property',                   MC::class, MC::class],
+		[MC::class,  'public_parent_overridden_property',       MC::class, MC::class],
+		[MC::class,  'public_parent_trait_overridden_property', MC::class, MC::class],
+		[MC::class,  'public_trait_overridden_property',        MC::class, MC::class],
+		[MC::class,  'public_trait_trait_overridden_property',  MC::class, MC::class],
+		[MP::class,  'protected_parent_property',               MC::class, MP::class],
+		[MP::class,  'public_parent_property',                  MC::class, MP::class],
+		[MP::class,  'protected_parent_trait_property',         MC::class, MPT::class],
+		[MP::class,  'public_parent_trait_property',            MC::class, MPT::class],
+		[MC::class,  'private_trait_property',                  MC::class, MT::class],
+		[MC::class,  'protected_trait_property',                MC::class, MT::class],
+		[MC::class,  'public_trait_property',                   MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',          MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',             MC::class, MTT::class]
 	]])]
 	#[TestWith([4, MC::class, null, [
-		[MC::class,  'private_class_property',          MC::class, MC::class],
-		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
-		[MC::class,  'protected_class_property',        MC::class, MC::class],
-		[MC::class,  'public_class_property',           MC::class, MC::class],
-		[MP::class,  'protected_parent_property',       MC::class, MP::class],
-		[MP::class,  'public_parent_property',          MC::class, MP::class],
-		[MP::class,  'protected_parent_trait_property', MC::class, MPT::class],
-		[MP::class,  'public_parent_trait_property',    MC::class, MPT::class],
-		[MC::class,  'private_trait_property',          MC::class, MT::class],
-		[MC::class,  'protected_trait_property',        MC::class, MT::class],
-		[MC::class,  'public_trait_property',           MC::class, MT::class],
-		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
-		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+		[MC::class,  'private_class_property',                  MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',            MC::class, MC::class],
+		[MC::class,  'protected_class_property',                MC::class, MC::class],
+		[MC::class,  'public_class_property',                   MC::class, MC::class],
+		[MC::class,  'public_parent_overridden_property',       MC::class, MC::class],
+		[MC::class,  'public_parent_trait_overridden_property', MC::class, MC::class],
+		[MC::class,  'public_trait_overridden_property',        MC::class, MC::class],
+		[MC::class,  'public_trait_trait_overridden_property',  MC::class, MC::class],
+		[MP::class,  'protected_parent_property',               MC::class, MP::class],
+		[MP::class,  'public_parent_property',                  MC::class, MP::class],
+		[MP::class,  'protected_parent_trait_property',         MC::class, MPT::class],
+		[MP::class,  'public_parent_trait_property',            MC::class, MPT::class],
+		[MC::class,  'private_trait_property',                  MC::class, MT::class],
+		[MC::class,  'protected_trait_property',                MC::class, MT::class],
+		[MC::class,  'public_trait_property',                   MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',          MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',             MC::class, MTT::class]
 	]])]
 	#[TestWith([5, A::class, Reflection_Property::IS_PRIVATE, []])]
 	public function testGetProperties(int $key, string $class_name, ?int $filter, array $expected)
@@ -548,9 +612,9 @@ class Reflection_Class_Test extends TestCase
 	 * @param class-string       $class_name
 	 * @param list<class-string> $expected
 	 */
-	#[TestWith([0, C::class, Reflection::T_LOCAL, [T::class]])]
-	#[TestWith([1, C::class, Reflection::T_EXTENDS, [T::class, PT::class]])]
-	#[TestWith([2, C::class, Reflection::T_EXTENDS | Reflection::T_USE, [T::class, TT::class, PT::class]])]
+	#[TestWith([0, C::class, Reflection::T_LOCAL, [T::class, TO::class ]])]
+	#[TestWith([1, C::class, Reflection::T_EXTENDS, [T::class, TO::class, PT::class]])]
+	#[TestWith([2, C::class, Reflection::T_EXTENDS | Reflection::T_USE, [T::class, TO::class, TT::class, PT::class]])]
 	public function testGetTraitAndNames(int $key, string $class_name, int $filter, array $expected)
 		: void
 	{
@@ -665,6 +729,7 @@ class Reflection_Class_Test extends TestCase
 	//---------------------------------------------------------------------------------------- testOf
 	public function testOf() : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid class */
 		$class = Reflection_Class::of(C::class);
 		self::assertInstanceOf(Reflection_Class::class, $class, 'instance');
 		self::assertEquals(C::class, $class->name, 'name');

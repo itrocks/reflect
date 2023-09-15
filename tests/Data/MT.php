@@ -12,7 +12,16 @@ trait MT
 	protected mixed $protected_trait_property = null;
 
 	//------------------------------------------------------------------------ $public_trait_property
+	/** MT:trait_property */
 	public mixed $public_trait_property = null;
+
+	//------------------------------------------------------------- $public_trait_overridden_property
+	/** MT:trait_overridden_property */
+	public mixed $public_trait_overridden_property = null;
+
+	//------------------------------------------------------- $public_trait_trait_overridden_property
+	/** MT:trait_trait_overridden_property */
+	public mixed $public_trait_trait_overridden_property = null;
 
 	//-------------------------------------------------------------------- privateAbstractTraitMethod
 	/** @noinspection PhpUnusedPrivateMethodInspection For testing purpose */

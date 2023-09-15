@@ -17,7 +17,6 @@ use ITRocks\Reflect\Tests\Data\T;
 use ITRocks\Reflect\Tests\Data\TT;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
-use ReflectionException;
 use ReflectionMethod;
 
 class Reflection_Method_Test extends TestCase
@@ -25,9 +24,9 @@ class Reflection_Method_Test extends TestCase
 
 	//------------------------------------------------------------------------------------- testClass
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0, [A::class, 'publicInterfaceMethod'],  I::class])]
 	#[TestWith([1, [C::class, 'publicClassMethod'],      C::class])]
@@ -37,21 +36,23 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([4, [C::class, 'publicTraitTraitMethod'], C::class])]
 	public function testClass(int $key, array $callable, string $expected) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
 		self::assertEquals($expected, $reflection_method->class, "data set #$key");
 	}
 
 	//------------------------------------------------------------------------------- testConstructor
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string|object,string}|string $arguments
-	 * @param array{class-string,string} $callable
-	 * @throws ReflectionException
+	 * @param array{class-string,string}               $callable
 	 */
 	#[TestWith([0, C::class . '::publicClassMethod', [C::class, 'publicClassMethod']])]
 	#[TestWith([1, [C::class, 'publicClassMethod'], [C::class, 'publicClassMethod']])]
 	#[TestWith([2, [new C, 'publicClassMethod'], [C::class, 'publicClassMethod']])]
 	public function testConstructor(int $key, array|string $arguments, array $callable) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = is_array($arguments)
 			? new Reflection_Method(reset($arguments), end($arguments))
 			: new Reflection_Method($arguments);
@@ -69,9 +70,9 @@ class Reflection_Method_Test extends TestCase
 
 	//------------------------------------------------------------------ testGetDeclaringClassAndName
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'],              I::class])]
 	#[TestWith([1,  [C::class, 'publicClassMethod'],                  C::class])]
@@ -93,24 +94,20 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([17, [O::class, 'publicTraitOverriddenMethod'],        O::class])]
 	public function testGetDeclaringClassAndName(int $key, array $callable, string $expected) : void
 	{
-		$native_reflection = new ReflectionMethod(reset($callable), end($callable));
-		$reflection_method = new Reflection_Method(reset($callable), end($callable));
-		self::assertEquals(
-			$native_reflection->getDeclaringClass()->name, $expected, "data set #$key native"
-		);
-		self::assertEquals(
-			$expected, $reflection_method->getDeclaringClassName(), "data set #$key name"
-		);
-		self::assertEquals(
-			$expected, $reflection_method->getDeclaringClass()->name, "data set #$key class"
-		);
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
+		$native = new ReflectionMethod(reset($callable), end($callable));
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
+		$reflection = new Reflection_Method(reset($callable), end($callable));
+		self::assertEquals($native->getDeclaringClass()->name, $expected, "data set #$key native");
+		self::assertEquals($expected, $reflection->getDeclaringClassName(), "data set #$key name");
+		self::assertEquals($expected, $reflection->getDeclaringClass()->name, "data set #$key class");
 	}
 
 	//------------------------------------------------------------------ testGetDeclaringTraitAndName
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
 	 * @param class-string               $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'],              I::class])]
 	#[TestWith([1,  [C::class, 'publicClassMethod'],                  C::class])]
@@ -132,6 +129,7 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([17, [O::class, 'publicTraitOverriddenMethod'],        T::class])]
 	public function testGetDeclaringTraitAndName(int $key, array $callable, string $expected) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
 		self::assertEquals(
 			$expected, $reflection_method->getDeclaringTraitName(), "data set #$key name"
@@ -143,9 +141,9 @@ class Reflection_Method_Test extends TestCase
 
 	//----------------------------------------------------------------------------- testGetDocComment
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
 	 * @param int<0,max>                 $filter
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'], "/** I::publicInterfaceMethod */", 0])]
 	#[TestWith([1,  [A::class, 'publicInterfaceMethod'], "/** I::publicInterfaceMethod */", Reflection::T_INHERIT])]
@@ -177,20 +175,21 @@ class Reflection_Method_Test extends TestCase
 	public function testGetDocComment(int $key, array $callable, string|false $expected, int $filter)
 		: void
 	{
-		$reflection_method = new Reflection_Method(reset($callable), end($callable));
-		$actual = $reflection_method->getDocComment($filter, false);
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
+		$reflection = new Reflection_Method(reset($callable), end($callable));
+		$actual     = $reflection->getDocComment($filter, false);
 		self::assertEquals($expected, $actual, "data set #$key");
-		$actual = $reflection_method->getDocComment($filter);
+		$actual = $reflection->getDocComment($filter);
 		self::assertEquals($expected, $actual, "data set #$key cache write");
-		$actual = $reflection_method->getDocComment($filter);
+		$actual = $reflection->getDocComment($filter);
 		self::assertEquals($expected, $actual, "data set #$key cache read");
 	}
 
 	//----------------------------------------------------------------------- testGetDocCommentLocate
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
 	 * @param int<0,max>                 $filter
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'], "/** FROM " . I::class . " */\n/** I::publicInterfaceMethod */", 0])]
 	#[TestWith([1,  [A::class, 'publicInterfaceMethod'], "/** FROM " . I::class . " */\n/** I::publicInterfaceMethod */", Reflection::T_INHERIT])]
@@ -218,6 +217,7 @@ class Reflection_Method_Test extends TestCase
 		int $key, array $callable, string|false $expected, int $filter
 	) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
 		$actual = $reflection_method->getDocComment($filter, false, true);
 		self::assertEquals($expected, $actual, "data set #$key");
@@ -229,9 +229,9 @@ class Reflection_Method_Test extends TestCase
 
 	//---------------------------------------------------------------------- testGetFinalClassAndName
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string}|string $callable
 	 * @param class-string                      $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0, [A::class, 'publicInterfaceMethod'],              A::class])]
 	#[TestWith([1, [C::class, 'publicClassMethod'],                  C::class])]
@@ -245,22 +245,19 @@ class Reflection_Method_Test extends TestCase
 	public function testGetFinalClassAndName(int $key, array|string $callable, string $expected)
 		: void
 	{
-		$reflection_method = is_array($callable)
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
+		$reflection = is_array($callable)
 			? new Reflection_Method(reset($callable), end($callable))
 			: new Reflection_Method($callable);
-		self::assertEquals(
-			$expected, $reflection_method->getFinalClassName(), "data set #$key name"
-		);
-		self::assertEquals(
-			$expected, $reflection_method->getFinalClass()->name, "data set #$key class"
-		);
+		self::assertEquals($expected, $reflection->getFinalClassName(), "data set #$key name");
+		self::assertEquals($expected, $reflection->getFinalClass()->name, "data set #$key class");
 	}
 
 	//--------------------------------------------------------------------------------- testGetParent
 	/**
-	 * @param array{class-string,string}  $callable
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param array{class-string,string} $callable
 	 * @param ?array{class-string,string} $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'],              null])]
 	#[TestWith([1,  [C::class, 'publicClassMethod'],                  null])]
@@ -286,6 +283,7 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([21, [C::class, 'privateParentMethod'],                null])]
 	public function testGetParent(int $key, array $callable, ?array $expected) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$method = new Reflection_Method(reset($callable), end($callable));
 		$parent = $method->getParent();
 		self::assertEquals(
@@ -295,9 +293,9 @@ class Reflection_Method_Test extends TestCase
 
 	//------------------------------------------------------------------------------ testGetPrototype
 	/**
-	 * @param array{class-string,string}  $callable
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param array{class-string,string} $callable
 	 * @param ?array{class-string,string} $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0,  [A::class, 'publicInterfaceMethod'],              null])]
 	#[TestWith([1,  [C::class, 'publicClassMethod'],                  null])]
@@ -322,11 +320,15 @@ class Reflection_Method_Test extends TestCase
 	#[TestWith([20, [PI::class, 'publicParentInterfaceMethod'],       null])]
 	public function testGetPrototype(int $key, array $callable, ?array $expected) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$native_method     = new ReflectionMethod(reset($callable), end($callable));
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
+		/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
 		$native_prototype = $native_method->hasPrototype()
 			? $native_method->getPrototype()
 			: null;
+		/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
 		$reflection_prototype = $reflection_method->hasPrototype()
 			? $reflection_method->getPrototype()
 			: null;
@@ -345,26 +347,28 @@ class Reflection_Method_Test extends TestCase
 	}
 
 	//------------------------------------------------------------------------ testGetPrototypeString
-	/** @throws ReflectionException */
 	#[TestWith([0, 'publicClassMethod', 'public function publicClassMethod() : void'])]
 	#[TestWith([1, 'withParameter', "public function withParameter(string &\$parameter = 'default') : string"])]
 	public function testGetPrototypeString(int $key, string $method_name, string $expected) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid method */
 		$method = new Reflection_Method(C::class, $method_name);
 		self::assertEquals($expected, $method->getPrototypeString(), "data set #$key");
 	}
 
 	//----------------------------------------------------------------------------- testGetReturnType
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param array{class-string,string} $callable
-	 * @throws ReflectionException
 	 */
 	#[TestWith([0, [Types::class, 'classReturnType'], Types::class])]
 	#[TestWith([1, [Types::class, 'noReturnType'], ''])]
 	#[TestWith([2, [Types::class, 'voidReturnType'], 'void'])]
 	public function testGetReturnType(int $key, array $callable, string $expected) : void
 	{
-		$native_method     = new ReflectionMethod(reset($callable), end($callable));
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
+		$native_method = new ReflectionMethod(reset($callable), end($callable));
+		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
 		self::assertEquals($expected, $native_method->getReturnType(), "data set #$key native");
 		self::assertEquals($expected, $reflection_method->getReturnType(), "data set #$key type");

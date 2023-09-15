@@ -16,7 +16,12 @@ abstract class MP
 	//-------------------------------------------------------------------- $protected_parent_property
 	protected mixed $protected_parent_property = null;
 
+	//------------------------------------------------------------ $public_parent_overridden_property
+	/** MP:parent_overridden_property */
+	public mixed $public_parent_overridden_property = null;
+
 	//----------------------------------------------------------------------- $public_parent_property
+	/** MP:parent_property */
 	public mixed $public_parent_property = null;
 
 	//-------------------------------------------------------------------------- overrideParentMethod

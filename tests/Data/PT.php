@@ -4,6 +4,7 @@ namespace ITRocks\Reflect\Tests\Data;
 /** PT:DC */
 trait PT
 {
+	use TO;
 
 	//----------------------------------------------------------------------- publicParentTraitMethod
 	/** PT::publicParentTraitMethod */

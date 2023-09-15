@@ -17,7 +17,24 @@ abstract class MC extends MP implements MI
 	protected mixed $protected_class_property = null;
 
 	//------------------------------------------------------------------------ $public_class_property
+	/** MC:class_property */
 	public mixed $public_class_property = null;
+
+	//------------------------------------------------------------ $public_parent_overridden_property
+	/** MC:parent_overridden_property */
+	public mixed $public_parent_overridden_property = null;
+
+	//------------------------------------------------------ $public_parent_trait_overridden_property
+	/** MC:parent_trait_overridden_property */
+	public mixed $public_parent_trait_overridden_property = null;
+
+	//------------------------------------------------------------- $public_trait_overridden_property
+	/** MC:trait_overridden_property */
+	public mixed $public_trait_overridden_property = null;
+
+	//------------------------------------------------------- $public_trait_trait_overridden_property
+	/** MC:trait_trait_overridden_property */
+	public mixed $public_trait_trait_overridden_property = null;
 
 	//-------------------------------------------------------------------------- overrideParentMethod
 	public function overrideParentMethod() : int

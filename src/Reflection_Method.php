@@ -144,7 +144,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		$depth ++;
 		/** @var list<class-string> $already */
 		static $already = [];
-		$already[] = $this->class;
+		$already[] = $this->getDeclaringTraitName();
 		if (($filter & self::T_IMPLEMENTS) > 0) {
 			foreach ($this->getFinalClass()->getInterfaces(self::T_LOCAL) as $interface) {
 				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {

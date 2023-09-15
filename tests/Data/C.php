@@ -5,6 +5,7 @@ namespace ITRocks\Reflect\Tests\Data;
 class C extends P implements I
 {
 	use T { publicTraitOverriddenMethod as publicRenamedTraitOverriddenMethod; }
+	use TO;
 
 	//----------------------------------------------------------------------------------- __construct
 	public function __construct()
