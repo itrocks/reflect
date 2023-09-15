@@ -10,7 +10,10 @@ abstract class Parse
 	public const CLASS_TOKENS = [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING];
 
 	//------------------------------------------------------------------------------------- className
-	/** @param list<array{int,string,int}|string> $tokens */
+	/**
+	 * @param list<array{int,string,int}|string> $tokens
+	 * @param-out list<array{int,string,int}|string> $tokens
+	 */
 	public static function className(array &$tokens, string $namespace) : string
 	{
 		do {
@@ -30,8 +33,8 @@ abstract class Parse
 		do {
 			$token = next($tokens);
 			if ($token === false) return '';
-		} while (!in_array($token[0], [T_NAME_QUALIFIED, T_STRING], true));
-		return $token[1];
+		} while (!in_array($token[0], [T_NAME_QUALIFIED, T_STRING, '{', ';'], true));
+		return is_array($token) ? $token[1] : '';
 	}
 
 	//---------------------------------------------------------------------------------- namespaceUse

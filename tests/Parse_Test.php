@@ -20,10 +20,11 @@ class Parse_Test extends TestCase
 	}
 
 	//----------------------------------------------------------------------------- testNamespaceName
-	#[TestWith(['Short_Namespace;', 'Short_Namespace'])]
-	#[TestWith(['Long\\Namespace;', 'Long\Namespace'])]
-	#[TestWith(['Short_Namespace {', 'Short_Namespace'])]
-	#[TestWith(['Long\\Namespace {', 'Long\Namespace'])]
+	#[TestWith(['{ class C {}', ''])]
+	#[TestWith(['Short_Namespace; class C {}', 'Short_Namespace'])]
+	#[TestWith(['Long\\Namespace; class C {}', 'Long\Namespace'])]
+	#[TestWith(['Short_Namespace { class C {} }', 'Short_Namespace'])]
+	#[TestWith(['Long\\Namespace { class C {} }', 'Long\Namespace'])]
 	public function testNamespaceName(string $code, string $expected) : void
 	{
 		$tokens = static::tokensTo('<?php namespace ' . $code, T_NAMESPACE, 'namespace');
