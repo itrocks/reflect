@@ -26,7 +26,8 @@ class Reflection_Parameter extends ReflectionParameter implements Interfaces\Ref
 	}
 
 	//--------------------------------------------------------------------------------- getDocComment
-	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false
+	public function getDocComment(
+		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
 	) : string|false
 	{
 		return false;

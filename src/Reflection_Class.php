@@ -42,20 +42,55 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		return $constructor;
 	}
 
+	//--------------------------------------------------------------------- getDeclaredInterfaceNames
+	/**
+	 * Parse extends / implements clause content for a class or interface.
+	 * Not to be called for a class/interface/trait with no extends nor implements clause!
+	 *
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return list<class-string>
+	 */
+	protected function getDeclaredInterfaceNames() : array
+	{
+		$implements    = [];
+		$namespace     = $this->getNamespaceName();
+		$namespace_use = $this->getNamespaceUse();
+		$tokens        = $this->getTokens();
+		$token         = current($tokens);
+		$token_id      = $this->isInterface() ? T_EXTENDS : T_IMPLEMENTS;
+		while ($token !== false) {
+			if ($token[0] === $token_id) {
+				break;
+			}
+			$token = next($tokens);
+		}
+		while (!in_array($token, ['{', false], true)) {
+			if (in_array(
+				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
+			)) {
+				/** @noinspection PhpUnhandledExceptionInspection Valid $token */
+				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
+			}
+			$token = next($tokens);
+		}
+		return $implements;
+	}
+
 	//--------------------------------------------------------------------------------- getDocComment
 	/**
 	 * Accumulates documentations of parents and the class itself
 	 *
 	 * @param int<0,max> $filter @default self::T_EXTENDS|self::T_IMPLEMENTS|self::T_USE
 	 */
-	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
-		: string|false
+	public function getDocComment(
+		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
+	) : string|false
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
 			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
 		}
-		if ($filter === 0) {
+		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
 		}
 		static $depth = 0;
@@ -71,7 +106,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		static $already = [];
 		$already[] = $this->name;
 		if ((($filter & self::T_USE) > 0) && !$this->isInterface()) {
-			foreach ($this->getTraits(self::T_USE) as $trait) {
+			foreach ($this->getTraits() as $trait) {
 				$append = $trait->getDocComment($filter, $cache, $locate);
 				if ($append !== false) {
 					$doc_comment = ($doc_comment === false) ? $append : ($doc_comment . "\n" . $append);
@@ -79,7 +114,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			}
 		}
 		if ((($filter & self::T_IMPLEMENTS) > 0) && !$this->isTrait()) {
-			foreach ($this->getInterfaces(self::T_IMPLEMENTS) as $interface) {
+			foreach ($this->getInterfaces(self::T_LOCAL) as $interface) {
 				if (in_array($interface->name, $already, true)) {
 					continue;
 				}
@@ -108,40 +143,6 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		return $doc_comment;
 	}
 
-	//----------------------------------------------------------------------------- getImplementNames
-	/**
-	 * Parse extends / implements clause content for a class or interface.
-	 * Not to be called for a class/interface/trait with no extends nor implements clause!
-	 *
-	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return list<class-string>
-	 */
-	protected function getImplementNames() : array
-	{
-		$implements    = [];
-		$namespace     = $this->getNamespaceName();
-		$namespace_use = $this->getNamespaceUse();
-		$tokens        = $this->getTokens();
-		$token         = current($tokens);
-		$token_id      = $this->isInterface() ? T_EXTENDS : T_IMPLEMENTS;
-		while ($token !== false) {
-			if ($token[0] === $token_id) {
-				break;
-			}
-			$token = next($tokens);
-		}
-		while (!in_array($token, ['{', false], true)) {
-			if (in_array(
-				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
-			)) {
-				/** @noinspection PhpUnhandledExceptionInspection Valid $token */
-				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
-			}
-			$token = next($tokens);
-		}
-		return $implements;
-	}
-
 	//----------------------------------------------------------------------------- getInterfaceNames
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
@@ -159,7 +160,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			$this->cache['interface_names'][$filter] = [];
 			return [];
 		}
-		$interface_names = $this->getImplementNames();
+		$interface_names = $this->getDeclaredInterfaceNames();
 		if (($filter & self::T_IMPLEMENTS) > 0) {
 			foreach ($interface_names as $interface_name) {
 				/** @noinspection PhpUnhandledExceptionInspection Valid getImplementNames result */
@@ -215,7 +216,8 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getMethods()
 	 * @return array<string,Reflection_Method> key is the name of the method
 	 */
-	public function getMethods(int $filter = null) : array
+	public function getMethods(?int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
+		: array
 	{
 		$any_inherit    = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
 		$any_visibility = ReflectionMethod::IS_ABSTRACT | ReflectionMethod::IS_FINAL
@@ -237,13 +239,16 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 				$interfaces   = $this->getInterfaceNames(T_IMPLEMENTS);
 				$parent_class = $this->getParentClass();
 				if ($parent_class !== false) {
-					$parent_method_names = array_keys($parent_class->getMethods(
+					$parent_methods = $parent_class->getMethods(
 						$any_inherit | ($any_visibility ^ ReflectionMethod::IS_PRIVATE)
-					));
-					foreach ($parent_method_names as $parent_method_name) {
-						$parent_method = $methods[$parent_method_name];
-						if (!in_array($parent_method->getDeclaringClassName(), $interfaces, true)) {
-							unset($methods[$parent_method_name]);
+					);
+					foreach ($parent_methods as $method_name => $parent_method) {
+						$method = $methods[$method_name];
+						if (
+							($method->getDeclaringTraitName() === $parent_method->getDeclaringTraitName())
+							&& !in_array($parent_method->getDeclaringClassName(), $interfaces, true)
+						) {
+							unset($methods[$method_name]);
 						}
 					}
 				}
@@ -273,22 +278,42 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if (key_exists('namespace_use', $this->cache)) {
 			return $this->cache['namespace_use'];
 		}
+		$depth         = 0;
 		$namespace     = $this->getNamespaceName();
+		$in_namespace  = ($namespace === '');
 		$namespace_use = [];
 		$tokens        = $this->getTokens();
 		$token         = reset($tokens);
 		while ($token !== false) {
-			if (($token[0] === T_NAMESPACE) && (Parse::namespaceName($tokens) === $namespace)) {
-				break;
+			if ($token[0] === T_NAMESPACE) {
+				$in_namespace = (Parse::namespaceName($tokens) === $namespace);
+				$token        = current($tokens);
+				while (!in_array($token, [false, '{', ';'], true)) {
+					$token = next($tokens);
+				}
+				$depth = 0;
 			}
-			$token = next($tokens);
-		}
-		while ($token !== false) {
-			if ($token[0] === T_USE) {
-				$namespace_use += Parse::namespaceUse($tokens);
+			elseif ($token === '{') {
+				$depth ++;
 			}
-			if (in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT, '}'], true)) {
-				break;
+			elseif ($token === '}') {
+				$depth --;
+				if ($depth < 0) {
+					$depth         = 0;
+					$in_namespace  = ($namespace === '');
+					$namespace_use = [];
+				}
+			}
+			elseif ($in_namespace) {
+				if (($token[0] === T_USE) && ($depth === 0)) {
+					$namespace_use += Parse::namespaceUse($tokens);
+				}
+				elseif (
+					in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT], true)
+					&& (Parse::className($tokens, $namespace) === $this->name)
+				) {
+					break;
+				}
 			}
 			$token = next($tokens);
 		}
@@ -323,11 +348,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * retrieved but if you set T_EXTENDS and T_USE to get them.
 	 *
 	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getProperties()
-	 * @param class-string|null $final_class If set, forces the final class to this name
-	 *                                       (mostly for internal use)
 	 * @return array<string,Reflection_Property> key is the name of the property
 	 */
-	public function getProperties(int $filter = null, string $final_class = null) : array
+	public function getProperties(?int $filter = self::T_EXTENDS | self::T_USE) : array
 	{
 		$any_inherit    = self::T_EXTENDS | self::T_USE;
 		$any_visibility = ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED
@@ -336,54 +359,36 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if (isset($filter) && (($filter & $any_visibility) === 0)) {
 			$filter |= $any_visibility;
 		}
-		$reflection_properties = [];
-		foreach (parent::getProperties($filter) as $property) {
-			$reflection_properties[$property->name] = $property;
+		$properties = [];
+		foreach (parent::getProperties($filter) as $native_property) {
+			/** @noinspection PhpUnhandledExceptionInspection $property from parent::getProperties() */
+			$properties[$native_property->name] = new Reflection_Property($this->name, $native_property->name);
 		}
-		if ($reflection_properties === []) {
-			return $reflection_properties;
-		}
-		if (is_null($final_class)) {
-			$final_class = $this->name;
-		}
-		if (
-			is_null($filter)
-			|| (($filter & $any_inherit) === $any_inherit)
-			|| (($filter & $any_inherit) === 0)
-		) {
-			$properties = [];
-			foreach ($reflection_properties as $property_name => $reflection_property) {
-				/** @noinspection PhpUnhandledExceptionInspection $property from parent::getProperties() */
-				$property = new Reflection_Property($this->name, $property_name);
-				$property->final_class      = $final_class;
-				$properties[$property_name] = $property;
-			}
+		if ($properties === []) {
 			return $properties;
 		}
-		if (($filter & self::T_EXTENDS) === 0) {
-			$parent_class = $this->getParentClass();
-			if ($parent_class !== false) {
-				$parent_properties = $parent_class->getProperties(
-					$filter & ~ReflectionProperty::IS_PRIVATE
-				);
-				foreach ($parent_properties as $property_name => $reflection_property) {
-					unset($reflection_properties[$property_name]);
+		if (isset($filter) && (($filter & $any_inherit) < $any_inherit)) {
+			if (($filter & self::T_EXTENDS) === 0) {
+				$parent_class = $this->getParentClass();
+				if ($parent_class !== false) {
+					$parent_properties = $parent_class->getProperties(
+						$any_inherit | ($any_visibility ^ ReflectionProperty::IS_PRIVATE)
+					);
+					foreach ($parent_properties as $property_name => $parent_property) {
+						$property = $properties[$property_name];
+						if ($parent_property->getDeclaringTraitName() === $property->getDeclaringTraitName()) {
+							unset($properties[$property_name]);
+						}
+					}
 				}
 			}
-		}
-		if (($filter & self::T_USE) === 0) {
-			foreach ($reflection_properties as $property_name => $reflection_property) {
-				if ($reflection_property->getDeclaringClass()->isTrait()) {
-					unset($reflection_properties[$property_name]);
+			if (($filter & self::T_USE) === 0) {
+				foreach ($properties as $property_name => $property) {
+					if ($property->getDeclaringTrait()->isTrait()) {
+						unset($properties[$property_name]);
+					}
 				}
 			}
-		}
-		$properties = [];
-		foreach ($reflection_properties as $property_name => $reflection_property) {
-			/** @noinspection PhpUnhandledExceptionInspection $property from parent::getProperties() */
-			$property = new Reflection_Property($this->name, $property_name);
-			$property->final_class = $final_class;
-			$properties[$property_name] = $property;
 		}
 		return $properties;
 	}
@@ -417,45 +422,54 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			$this->cache['tokens'] = [];
 			return $this->cache['tokens'];
 		}
-		$sourcecode = file_get_contents($filename);
-		if ($sourcecode === false) {
-			$this->cache['tokens'] = [];
-			return $this->cache['tokens'];
-		}
-		$this->cache['tokens'] = token_get_all($sourcecode);
+		$this->cache['tokens'] = token_get_all(strval(file_get_contents($filename)));
 		return $this->cache['tokens'];
 	}
 
 	//--------------------------------------------------------------------------------- getTraitNames
-	/** @return list<class-string> */
-	public function getTraitNames(int $filter = 0) : array
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return list<class-string>
+	 */
+	public function getTraitNames(int $filter = self::T_LOCAL) : array
 	{
-		$traits = parent::getTraitNames();
-		if (($filter & self::T_EXTENDS) > 0) {
-			$parent_class = $this->getParentClass();
-			if ($parent_class !== false) {
-				$traits = array_merge($traits, $parent_class->getTraitNames($filter));
+		$trait_names = parent::getTraitNames();
+		if (($filter & self::T_USE) > 0) {
+			foreach ($trait_names as $trait_name) {
+				/** @noinspection PhpUnhandledExceptionInspection Native getTraitNames */
+				$trait_names = array_merge($trait_names, (new static($trait_name))->getTraitNames($filter));
 			}
 		}
-		return $traits;
+		if (($filter & self::T_EXTENDS) > 0) {
+			$parent = $this->getParentClass();
+			if ($parent !== false) {
+				$trait_names = array_merge($trait_names, $parent->getTraitNames($filter));
+			}
+		}
+		return $trait_names;
 	}
 
 	//------------------------------------------------------------------------------------- getTraits
 	/**
-	 * @noinspection PhpDocMissingThrowsInspection from parent::getTraits()
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @return array<class-string,static>
 	 */
-	public function getTraits(int $filter = 0) : array
+	public function getTraits(int $filter = self::T_LOCAL) : array
 	{
 		$traits = [];
 		foreach (parent::getTraits() as $trait) {
-			/** @noinspection PhpUnhandledExceptionInspection from parent::getTraits() */
+			/** @noinspection PhpUnhandledExceptionInspection Native getTraits */
 			$traits[$trait->name] = new static($trait->name);
 		}
+		if (($filter & self::T_USE) > 0) {
+			foreach ($traits as $trait) {
+				$traits = array_merge($traits, $trait->getTraits($filter));
+			}
+		}
 		if (($filter & self::T_EXTENDS) > 0) {
-			$parent_class = $this->getParentClass();
-			if ($parent_class !== false) {
-				$traits = array_merge($traits, $parent_class->getTraits($filter));
+			$parent = $this->getParentClass();
+			if ($parent !== false) {
+				$traits = array_merge($traits, $parent->getTraits($filter));
 			}
 		}
 		return $traits;
@@ -466,9 +480,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * Returns true if the class has $name into its parents, interfaces or traits
 	 *
 	 * @param class-string $name
-	 * @param ?int $filter self::T_EXTENDS|self::T_IMPLEMENTS|self::T_USE
+	 * @param int $filter self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE
 	 */
-	public function isA(string $name, ?int $filter = null) : bool
+	public function isA(string $name, int $filter = self::T_INHERIT) : bool
 	{
 		if ($this->name === $name) {
 			return true;
@@ -476,21 +490,14 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if ($filter === 0) {
 			return false;
 		}
-		if (is_null($filter)) {
-			$filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
-		}
-		if ((($filter & self::T_EXTENDS) > 0) && class_exists($name)) {
+		if (
+			((($filter & self::T_EXTENDS) > 0) && class_exists($name))
+			|| ((($filter & self::T_IMPLEMENTS) > 0) && interface_exists($name))
+		) {
 			return is_a($this->name, $name, true);
 		}
-		if ((($filter & self::T_IMPLEMENTS) > 0) && interface_exists($name)) {
-			if (in_array($name, $this->getInterfaceNames($filter), true)) {
-				return true;
-			}
-		}
 		if ((($filter & self::T_USE) > 0) && trait_exists($name)) {
-			if (in_array($name, $this->getTraitNames($filter), true)) {
-				return true;
-			}
+			return in_array($name, $this->getTraitNames($filter), true);
 		}
 		return false;
 	}

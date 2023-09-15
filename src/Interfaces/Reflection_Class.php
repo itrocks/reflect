@@ -24,7 +24,8 @@ interface Reflection_Class extends Reflection
 
 	//---------------------------------------------------------------------------------- getConstants
 	/** @return array<string,mixed> */
-	public function getConstants(int $filter = null) : array;
+	public function getConstants(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
+		: array;
 
 	//-------------------------------------------------------------------------------- getConstructor
 	/** Gets the constructor of the reflected class */
@@ -36,12 +37,12 @@ interface Reflection_Class extends Reflection
 
 	//----------------------------------------------------------------------------- getInterfaceNames
 	/** @return list<class-string> */
-	public function getInterfaceNames(int $filter = Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS)
+	public function getInterfaceNames(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS)
 		: array;
 
 	//--------------------------------------------------------------------------------- getInterfaces
 	/** @return array<class-string,static> */
-	public function getInterfaces(int $filter = Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS)
+	public function getInterfaces(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS)
 		: array;
 
 	//------------------------------------------------------------------------------------- getMethod
@@ -50,7 +51,8 @@ interface Reflection_Class extends Reflection
 
 	//------------------------------------------------------------------------------------ getMethods
 	/** @return array<string,Reflection_Method> */
-	public function getMethods(int $filter = null) : array;
+	public function getMethods(?int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
+		: array;
 
 	//------------------------------------------------------------------------------ getNamespaceName
 	public function getNamespaceName() : string;
@@ -60,7 +62,7 @@ interface Reflection_Class extends Reflection
 
 	//--------------------------------------------------------------------------------- getProperties
 	/** @return array<string,Reflection_Property> */
-	public function getProperties(int $filter = null) : array;
+	public function getProperties(?int $filter = self::T_EXTENDS | self::T_USE) : array;
 
 	//----------------------------------------------------------------------------------- getProperty
 	/** @throws ReflectionException */
@@ -68,11 +70,11 @@ interface Reflection_Class extends Reflection
 
 	//--------------------------------------------------------------------------------- getTraitNames
 	/** @return list<class-string> */
-	public function getTraitNames(int $filter = 0) : array;
+	public function getTraitNames(int $filter = self::T_LOCAL) : array;
 
 	//------------------------------------------------------------------------------------- getTraits
 	/** @return array<class-string,static> */
-	public function getTraits(int $filter = 0) : array;
+	public function getTraits(int $filter = self::T_LOCAL) : array;
 
 	//----------------------------------------------------------------------------------- inNamespace
 	public function inNamespace() : bool;
@@ -83,7 +85,7 @@ interface Reflection_Class extends Reflection
 	 *
 	 * @param class-string $name
 	 */
-	public function isA(string $name, ?int $filter = null) : bool;
+	public function isA(string $name, int $filter = self::T_INHERIT) : bool;
 
 	//------------------------------------------------------------------------------------ isAbstract
 	public function isAbstract(bool $interface_trait_is_abstract = false) : bool;

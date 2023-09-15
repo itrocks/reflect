@@ -73,8 +73,12 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	{
 		$traits = $class->getTraits();
 		foreach ($traits as $trait) {
-			$properties = $trait->getProperties(0);
-			if (isset($properties[$this->name])) {
+			$property = $trait->getProperties(self::T_USE)[$this->name] ?? null;
+			if (
+				isset($property)
+				&& ($property->getDocComment() === $this->getDocComment())
+				&& (join(',', $property->getAttributes()) === join(',', $this->getAttributes()))
+			) {
 				return $this->getDeclaringTraitInternal($trait);
 			}
 		}
@@ -92,14 +96,15 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	 * @param int<0,max> $filter self::T_EXTENDS|self::T_INHERIT|self::T_USE (all work the same way)
 	 * @param bool       $cache true if save/use cache
 	 */
-	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
-		: string|false
+	public function getDocComment(
+		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
+	) : string|false
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
 			$doc_comment = '/** FROM ' . $this->name . " */\n" . $doc_comment;
 		}
-		if ($filter === 0) {
+		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
 		}
 		if ($cache && isset($this->cache['doc_comment'])) {

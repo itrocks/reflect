@@ -15,12 +15,14 @@ interface Reflection
 	public const T_EXTENDS    = 1024;
 	public const T_IMPLEMENTS = 2048;
 	public const T_INHERIT    = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
+	public const T_LOCAL      = 0;
 	public const T_USE        = 4096;
 
 	//--------------------------------------------------------------------------------- getDocComment
 	/** @param int<0,max> $filter self::T_EXTEND|self::T_IMPLEMENT|self::T_USE */
-	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
-		: string|false;
+	public function getDocComment(
+		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
+	) : string|false;
 
 	//--------------------------------------------------------------------------------------- getName
 	public function getName() : ?string;

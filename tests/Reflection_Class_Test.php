@@ -1,9 +1,11 @@
 <?php
 namespace ITRocks\Reflect\Tests;
 
+use CA;
 use ITRocks\Reflect\Interfaces\Reflection;
 use ITRocks\Reflect\Reflection_Class;
 use ITRocks\Reflect\Reflection_Method;
+use ITRocks\Reflect\Reflection_Property;
 use ITRocks\Reflect\Tests\Data\A;
 use ITRocks\Reflect\Tests\Data\C;
 use ITRocks\Reflect\Tests\Data\I;
@@ -22,6 +24,9 @@ use ITRocks\Reflect\Tests\Data\PT;
 use ITRocks\Reflect\Tests\Data\R;
 use ITRocks\Reflect\Tests\Data\T;
 use ITRocks\Reflect\Tests\Data\TT;
+use NS\B\CB;
+use NS\B\CD;
+use NS\C\CC;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -63,11 +68,11 @@ class Reflection_Class_Test extends TestCase
 
 	//----------------------------------------------------------------------------- testGetDocComment
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param class-string $class_name
 	 * @param int<0,max> $filter
-	 * @throws ReflectionException
 	 */
-	#[TestWith([0,  C::class, 0, "/** C:DC */"])]
+	#[TestWith([0,  C::class, Reflection::T_LOCAL, "/** C:DC */"])]
 	#[TestWith([1,  C::class, Reflection::T_EXTENDS, "/** C:DC */\n/** P:DC */\n/** R:DC */"])]
 	#[TestWith([2,  C::class, Reflection::T_IMPLEMENTS, "/** C:DC */\n/** I:DC */\n/** II:DC */"])]
 	#[TestWith([3,  C::class, Reflection::T_USE, "/** C:DC */\n/** T:DC */\n/** TT:DC */"])]
@@ -75,17 +80,18 @@ class Reflection_Class_Test extends TestCase
 	#[TestWith([5,  C::class, Reflection::T_EXTENDS | Reflection::T_USE, "/** C:DC */\n/** T:DC */\n/** TT:DC */\n/** P:DC */\n/** PT:DC */\n/** R:DC */"])]
 	#[TestWith([6,  C::class, Reflection::T_IMPLEMENTS | Reflection::T_USE, "/** C:DC */\n/** T:DC */\n/** TT:DC */\n/** I:DC */\n/** II:DC */"])]
 	#[TestWith([7,  C::class, Reflection::T_INHERIT, "/** C:DC */\n/** T:DC */\n/** TT:DC */\n/** I:DC */\n/** II:DC */\n/** P:DC */\n/** PT:DC */\n/** PI:DC */\n/** R:DC */"])]
-	#[TestWith([8,  I::class, 0, "/** I:DC */"])]
+	#[TestWith([8,  I::class, Reflection::T_LOCAL, "/** I:DC */"])]
 	#[TestWith([9,  I::class, Reflection::T_EXTENDS, "/** I:DC */"])]
 	#[TestWith([10, I::class, Reflection::T_IMPLEMENTS, "/** I:DC */\n/** II:DC */"])]
 	#[TestWith([11, I::class, Reflection::T_USE, "/** I:DC */"])]
-	#[TestWith([12, T::class, 0, "/** T:DC */"])]
+	#[TestWith([12, T::class, Reflection::T_LOCAL, "/** T:DC */"])]
 	#[TestWith([13, T::class, Reflection::T_EXTENDS, "/** T:DC */"])]
 	#[TestWith([14, T::class, Reflection::T_IMPLEMENTS, "/** T:DC */"])]
 	#[TestWith([15, T::class, Reflection::T_USE, "/** T:DC */\n/** TT:DC */"])]
 	public function testGetDocComment(int $key, string $class_name, int $filter, string $expected)
 		: void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
 		$reflection_class = new Reflection_Class($class_name);
 		self::assertEquals(
 			$expected, $reflection_class->getDocComment($filter, false), "data set #$key"
@@ -100,11 +106,11 @@ class Reflection_Class_Test extends TestCase
 
 	//----------------------------------------------------------------------- testGetDocCommentLocate
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param class-string $class_name
 	 * @param int<0,max> $filter
-	 * @throws ReflectionException
 	 */
-	#[TestWith([0,  C::class, 0, "/** FROM " . C::class . " */\n/** C:DC */"])]
+	#[TestWith([0,  C::class, Reflection::T_LOCAL, "/** FROM " . C::class . " */\n/** C:DC */"])]
 	#[TestWith([1,  C::class, Reflection::T_EXTENDS, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . P::class . " */\n/** P:DC */\n/** FROM " . R::class . " */\n/** R:DC */"])]
 	#[TestWith([2,  C::class, Reflection::T_IMPLEMENTS, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . I::class . " */\n/** I:DC */\n/** FROM " . II::class . " */\n/** II:DC */"])]
 	#[TestWith([3,  C::class, Reflection::T_USE, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . T::class . " */\n/** T:DC */\n/** FROM " . TT::class . " */\n/** TT:DC */"])]
@@ -112,11 +118,11 @@ class Reflection_Class_Test extends TestCase
 	#[TestWith([5,  C::class, Reflection::T_EXTENDS | Reflection::T_USE, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . T::class . " */\n/** T:DC */\n/** FROM " . TT::class . " */\n/** TT:DC */\n/** FROM " . P::class . " */\n/** P:DC */\n/** FROM " . PT::class . " */\n/** PT:DC */\n/** FROM " . R::class . " */\n/** R:DC */"])]
 	#[TestWith([6,  C::class, Reflection::T_IMPLEMENTS | Reflection::T_USE, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . T::class . " */\n/** T:DC */\n/** FROM " . TT::class . " */\n/** TT:DC */\n/** FROM " . I::class . " */\n/** I:DC */\n/** FROM " . II::class . " */\n/** II:DC */"])]
 	#[TestWith([7,  C::class, Reflection::T_INHERIT, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . T::class . " */\n/** T:DC */\n/** FROM " . TT::class . " */\n/** TT:DC */\n/** FROM " . I::class . " */\n/** I:DC */\n/** FROM " . II::class . " */\n/** II:DC */\n/** FROM " . P::class . " */\n/** P:DC */\n/** FROM " . PT::class . " */\n/** PT:DC */\n/** FROM " . PI::class . " */\n/** PI:DC */\n/** FROM " . R::class . " */\n/** R:DC */"])]
-	#[TestWith([8,  I::class, 0, "/** FROM " . I::class . " */\n/** I:DC */"])]
+	#[TestWith([8,  I::class, Reflection::T_LOCAL, "/** FROM " . I::class . " */\n/** I:DC */"])]
 	#[TestWith([9,  I::class, Reflection::T_EXTENDS, "/** FROM " . I::class . " */\n/** I:DC */"])]
 	#[TestWith([10, I::class, Reflection::T_IMPLEMENTS, "/** FROM " . I::class . " */\n/** I:DC */\n/** FROM " . II::class . " */\n/** II:DC */"])]
 	#[TestWith([11, I::class, Reflection::T_USE, "/** FROM " . I::class . " */\n/** I:DC */"])]
-	#[TestWith([12, T::class, 0, "/** FROM " . T::class . " */\n/** T:DC */"])]
+	#[TestWith([12, T::class, Reflection::T_LOCAL, "/** FROM " . T::class . " */\n/** T:DC */"])]
 	#[TestWith([13, T::class, Reflection::T_EXTENDS, "/** FROM " . T::class . " */\n/** T:DC */"])]
 	#[TestWith([14, T::class, Reflection::T_IMPLEMENTS, "/** FROM " . T::class . " */\n/** T:DC */"])]
 	#[TestWith([15, T::class, Reflection::T_USE, "/** FROM " . T::class . " */\n/** T:DC */\n/** FROM " . TT::class . " */\n/** TT:DC */"])]
@@ -124,6 +130,7 @@ class Reflection_Class_Test extends TestCase
 		int $key, string $class_name, int $filter, string $expected
 	) : void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
 		$reflection_class = new Reflection_Class($class_name);
 		self::assertEquals(
 			$expected, $reflection_class->getDocComment($filter, false, true), "data set #$key"
@@ -138,18 +145,19 @@ class Reflection_Class_Test extends TestCase
 
 	//------------------------------------------------------------------------- testGetInterfaceNames
 	/**
-	 * @param class-string       $class_name
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
 	 * @param int<0,max>         $filter
 	 * @param list<class-string> $expected
-	 * @throws ReflectionException
 	 */
-	#[TestWith([0, C::class, 0, [I::class]])]
+	#[TestWith([0, C::class, Reflection::T_LOCAL, [I::class]])]
 	#[TestWith([1, C::class, Reflection::T_IMPLEMENTS, [I::class, II::class]])]
 	#[TestWith([2, C::class, Reflection::T_EXTENDS, [I::class, PI::class]])]
 	#[TestWith([3, C::class, Reflection::T_INHERIT, [I::class, II::class, PI::class]])]
 	public function testGetInterfaceNames(int $key, string $class_name, int $filter, array $expected)
 		: void
 	{
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
 		$reflection_class = new Reflection_Class($class_name);
 		self::assertEquals($expected, $reflection_class->getInterfaceNames($filter), "data set #$key");
 	}
@@ -192,12 +200,13 @@ class Reflection_Class_Test extends TestCase
 
 	//-------------------------------------------------------------------------------- testGetMethods
 	/**
-	 * @param class-string                                               $class_name
-	 * @param int<0,max>                                                 $filter
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 * @param ?int<0,max>                                                $filter
 	 * @param list<array{class-string,string,class-string,class-string}> $expected
-	 * @throws ReflectionException
 	 */
-	#[TestWith([0, MC::class, 0, [
+	#[TestWith([0, MC::class, Reflection::T_LOCAL, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -205,6 +214,7 @@ class Reflection_Class_Test extends TestCase
 		[MC::class,  'publicClassMethod',               MC::class, MC::class]
 	]])]
 	#[TestWith([1, MC::class, Reflection::T_EXTENDS, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -214,6 +224,7 @@ class Reflection_Class_Test extends TestCase
 		[MP::class,  'publicParentMethod',              MC::class, MP::class]
 	]])]
 	#[TestWith([2, MC::class, Reflection::T_IMPLEMENTS, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -223,6 +234,7 @@ class Reflection_Class_Test extends TestCase
 		[MII::class, 'interfaceInterfaceMethod',        MC::class, MII::class]
 	]])]
 	#[TestWith([3, MC::class, Reflection::T_USE, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -236,6 +248,7 @@ class Reflection_Class_Test extends TestCase
 		[MC::class,  'publicTraitTraitMethod',          MC::class, MTT::class]
 	]])]
 	#[TestWith([4, MC::class, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -247,6 +260,7 @@ class Reflection_Class_Test extends TestCase
 		[MII::class, 'interfaceInterfaceMethod',        MC::class, MII::class]
 	]])]
 	#[TestWith([5, MC::class, Reflection::T_EXTENDS | Reflection::T_USE, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -264,6 +278,7 @@ class Reflection_Class_Test extends TestCase
 		[MC::class,  'publicTraitTraitMethod',          MC::class, MTT::class]
 	]])]
 	#[TestWith([6, MC::class, Reflection::T_IMPLEMENTS | Reflection::T_USE, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -279,6 +294,7 @@ class Reflection_Class_Test extends TestCase
 		[MII::class, 'interfaceInterfaceMethod',        MC::class, MII::class]
 	]])]
 	#[TestWith([7, MC::class, Reflection::T_INHERIT, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
 		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
 		[MC::class,  'privateClassMethod',              MC::class, MC::class],
@@ -297,10 +313,31 @@ class Reflection_Class_Test extends TestCase
 		[MI::class,  'interfaceMethod',                 MC::class, MI::class],
 		[MII::class, 'interfaceInterfaceMethod',        MC::class, MII::class]
 	]])]
-	#[TestWith([8, A::class, Reflection_Method::IS_PRIVATE, []])]
-	public function testGetMethods(int $key, string $class_name, int $filter, array $expected) : void
+	#[TestWith([8, MC::class, null, [
+		[MC::class,  'overrideParentMethod',            MC::class, MC::class],
+		[MC::class,  'privateAbstractTraitMethod',      MC::class, MC::class],
+		[MC::class,  'privateAbstractTraitTraitMethod', MC::class, MC::class],
+		[MC::class,  'privateClassMethod',              MC::class, MC::class],
+		[MC::class,  'protectedClassMethod',            MC::class, MC::class],
+		[MC::class,  'publicClassMethod',               MC::class, MC::class],
+		[MP::class,  'protectedParentMethod',           MC::class, MP::class],
+		[MP::class,  'publicParentMethod',              MC::class, MP::class],
+		[MP::class,  'protectedParentTraitMethod',      MC::class, MPT::class],
+		[MP::class,  'publicParentTraitMethod',         MC::class, MPT::class],
+		[MC::class,  'privateTraitMethod',              MC::class, MT::class],
+		[MC::class,  'protectedTraitMethod',            MC::class, MT::class],
+		[MC::class,  'publicTraitMethod',               MC::class, MT::class],
+		[MC::class,  'privateTraitTraitMethod',         MC::class, MTT::class],
+		[MC::class,  'protectedTraitTraitMethod',       MC::class, MTT::class],
+		[MC::class,  'publicTraitTraitMethod',          MC::class, MTT::class],
+		[MI::class,  'interfaceMethod',                 MC::class, MI::class],
+		[MII::class, 'interfaceInterfaceMethod',        MC::class, MII::class]
+	]])]
+	#[TestWith([9, A::class, Reflection_Method::IS_PRIVATE, []])]
+	public function testGetMethods(int $key, string $class_name, ?int $filter, array $expected) : void
 	{
 		$actual = [];
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
 		foreach ((new Reflection_Class($class_name))->getMethods($filter) as $method) {
 			$actual[] = join(' :: ', [
 				$method->getDeclaringClassName(),
@@ -332,11 +369,30 @@ class Reflection_Class_Test extends TestCase
 		self::assertEquals($expected, $actual, 'cached');
 	}
 
+	//------------------------------------------------------------------- testGetNamespaceUseMultiple
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 */
+	#[TestWith([CA::class, 'NS\B'])]
+	#[TestWith([CB::class, 'NS\C'])]
+	#[TestWith([CC::class, 'NS\D'])]
+	#[TestWith([CD::class, 'NS\E'])]
+	public function testGetNamespaceUseMultiple(string $class_name, string $expected) : void
+	{
+		require_once __DIR__ . '/Data/Namespace_Use_Multiple.php';
+		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
+		$class    = new Reflection_Class($class_name);
+		$expected = [substr($expected, intval(strrpos($expected, '\\')) + 1) => $expected];
+		self::assertEquals($expected, $class->getNamespaceUse());
+		self::assertEquals($expected, $class->getNamespaceUse(), 'cached');
+	}
+
 	//--------------------------------------------------------------------- testGetParentClassAndName
 	/**
+	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param class-string $class_name
 	 * @param class-string $expected
-	 * @throws ReflectionException
 	 */
 	#[TestWith([A::class, ''])]
 	#[TestWith([C::class, P::class])]
@@ -344,10 +400,167 @@ class Reflection_Class_Test extends TestCase
 	#[TestWith([T::class, ''])]
 	public function testGetParentClassAndName(string $class_name, string $expected) : void
 	{
-		$class = new Reflection_Class($class_name);
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
+		$class        = new Reflection_Class($class_name);
 		$parent_class = $class->getParentClass();
 		self::assertEquals($expected, ($parent_class === false) ? '' : $parent_class->name, "$class_name class");
 		self::assertEquals($expected, $class->getParentClassName(), "$class_name name");
+	}
+
+	//----------------------------------------------------------------------------- testGetProperties
+	/**
+	 * @param class-string                                               $class_name
+	 * @param ?int<0,max>                                                $filter
+	 * @param list<array{class-string,string,class-string,class-string}> $expected
+	 * @throws ReflectionException
+	 */
+	#[TestWith([0, MC::class, Reflection::T_LOCAL, [
+		[MC::class,  'private_class_property',       MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property', MC::class, MC::class],
+		[MC::class,  'protected_class_property',     MC::class, MC::class],
+		[MC::class,  'public_class_property',        MC::class, MC::class]
+	]])]
+	#[TestWith([1, MC::class, Reflection::T_EXTENDS, [
+		[MC::class,  'private_class_property',          MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
+		[MC::class,  'protected_class_property',        MC::class, MC::class],
+		[MC::class,  'public_class_property',           MC::class, MC::class],
+		[MP::class,  'protected_parent_property',       MC::class, MP::class],
+		[MP::class,  'public_parent_property',          MC::class, MP::class]
+	]])]
+	#[TestWith([2, MC::class, Reflection::T_USE, [
+		[MC::class,  'private_class_property',          MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
+		[MC::class,  'protected_class_property',        MC::class, MC::class],
+		[MC::class,  'public_class_property',           MC::class, MC::class],
+		[MC::class,  'private_trait_property',          MC::class, MT::class],
+		[MC::class,  'protected_trait_property',        MC::class, MT::class],
+		[MC::class,  'public_trait_property',           MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+	]])]
+	#[TestWith([3, MC::class, Reflection::T_INHERIT, [
+		[MC::class,  'private_class_property',          MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
+		[MC::class,  'protected_class_property',        MC::class, MC::class],
+		[MC::class,  'public_class_property',           MC::class, MC::class],
+		[MP::class,  'protected_parent_property',       MC::class, MP::class],
+		[MP::class,  'public_parent_property',          MC::class, MP::class],
+		[MP::class,  'protected_parent_trait_property', MC::class, MPT::class],
+		[MP::class,  'public_parent_trait_property',    MC::class, MPT::class],
+		[MC::class,  'private_trait_property',          MC::class, MT::class],
+		[MC::class,  'protected_trait_property',        MC::class, MT::class],
+		[MC::class,  'public_trait_property',           MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+	]])]
+	#[TestWith([4, MC::class, null, [
+		[MC::class,  'private_class_property',          MC::class, MC::class],
+		[MC::class,  'private_trait_trait_property',    MC::class, MC::class],
+		[MC::class,  'protected_class_property',        MC::class, MC::class],
+		[MC::class,  'public_class_property',           MC::class, MC::class],
+		[MP::class,  'protected_parent_property',       MC::class, MP::class],
+		[MP::class,  'public_parent_property',          MC::class, MP::class],
+		[MP::class,  'protected_parent_trait_property', MC::class, MPT::class],
+		[MP::class,  'public_parent_trait_property',    MC::class, MPT::class],
+		[MC::class,  'private_trait_property',          MC::class, MT::class],
+		[MC::class,  'protected_trait_property',        MC::class, MT::class],
+		[MC::class,  'public_trait_property',           MC::class, MT::class],
+		[MC::class,  'protected_trait_trait_property',  MC::class, MTT::class],
+		[MC::class,  'public_trait_trait_property',     MC::class, MTT::class]
+	]])]
+	#[TestWith([5, A::class, Reflection_Property::IS_PRIVATE, []])]
+	public function testGetProperties(int $key, string $class_name, ?int $filter, array $expected)
+		: void
+	{
+		$actual = [];
+		foreach ((new Reflection_Class($class_name))->getProperties($filter) as $method) {
+			$actual[] = join(' :: ', [
+				$method->getDeclaringClassName(),
+				$method->getName(),
+				$method->getFinalClassName(),
+				$method->getDeclaringTraitName()
+			]);
+		}
+		foreach ($expected as &$line) {
+			$line = join(' :: ', $line);
+		}
+		self::assertEquals($expected, $actual, "Data set #$key");
+	}
+
+	//------------------------------------------------------------------------------- testGetProperty
+	public function testGetProperty() : void
+	{
+		$native_class     = new ReflectionClass(MC::class);
+		$reflection_class = new Reflection_Class(MC::class);
+		/** @noinspection PhpUnhandledExceptionInspection property exists */
+		self::assertEquals(
+			array_merge(
+				get_object_vars($native_class->getProperty('public_class_property')),
+				['final_class' => MC::class]
+			),
+			get_object_vars($reflection_class->getProperty('public_class_property'))
+		);
+		try {
+			/** @noinspection PhpExpressionResultUnusedInspection For exception testing purpose */
+			$native_class->getProperty('does_not_exist');
+			$code    = 0;
+			$message = '';
+		}
+		catch (ReflectionException $exception) {
+			$code    = $exception->getCode();
+			$message = $exception->getMessage();
+		}
+		$this->expectException(ReflectionException::class);
+		$this->expectExceptionCode($code);
+		$this->expectExceptionMessage($message);
+		$reflection_class->getProperty('does_not_exist');
+	}
+
+	//--------------------------------------------------------------------------------- testGetTokens
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 */
+	#[TestWith([MC::class, false])]
+	#[TestWith([ReflectionClass::class, true])]
+	public function testGetTokens(string $class_name, bool $expected_empty) : void
+	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid class */
+		$expected = $expected_empty
+			? []
+			: token_get_all(strval(file_get_contents(strval(
+				(new ReflectionClass($class_name))->getFileName()
+			))));
+		/** @noinspection PhpUnhandledExceptionInspection Valid class */
+		self::assertEquals($expected, (new Reflection_Class($class_name))->getTokens());
+		/** @noinspection PhpUnhandledExceptionInspection Valid class */
+		self::assertEquals($expected, (new Reflection_Class($class_name))->getTokens(), 'cache read');
+	}
+
+	//-------------------------------------------------------------------------- testGetTraitAndNames
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string       $class_name
+	 * @param list<class-string> $expected
+	 */
+	#[TestWith([0, C::class, Reflection::T_LOCAL, [T::class]])]
+	#[TestWith([0, C::class, Reflection::T_EXTENDS, [T::class, PT::class]])]
+	#[TestWith([0, C::class, Reflection::T_EXTENDS | Reflection::T_USE, [T::class, TT::class, PT::class]])]
+	public function testGetTraitAndNames(int $key, string $class_name, int $filter, array $expected)
+		: void
+	{
+		/** @noinspection PhpUnhandledExceptionInspection Always valid */
+		$class = new Reflection_Class($class_name);
+		self::assertEquals($expected, $class->getTraitNames($filter), "data set #$key names");
+		self::assertEquals(
+			array_combine($expected, $expected),
+			array_map(
+				function(Reflection_Class $trait) { return $trait->name; },
+				$class->getTraits($filter)
+			),
+			"data set #$key traits"
+		);
 	}
 
 }

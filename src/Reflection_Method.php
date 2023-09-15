@@ -122,14 +122,15 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param int<0,max> $filter self::T_EXTENDS|self::T_IMPLEMENTS|self::T_USE
 	 */
-	public function getDocComment(int $filter = 0, bool $cache = true, bool $locate = false)
-		: string|false
+	public function getDocComment(
+		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
+	) : string|false
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
 			$doc_comment = '/** FROM ' . $this->getDeclaringTraitName() . " */\n" . $doc_comment;
 		}
-		if ($filter === 0) {
+		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
 		}
 		static $depth = 0;
@@ -145,7 +146,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		static $already = [];
 		$already[] = $this->class;
 		if (($filter & self::T_IMPLEMENTS) > 0) {
-			foreach ($this->getFinalClass()->getInterfaces(0) as $interface) {
+			foreach ($this->getFinalClass()->getInterfaces(self::T_LOCAL) as $interface) {
 				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {
 					continue;
 				}

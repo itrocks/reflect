@@ -91,9 +91,7 @@ class Parse_Test extends TestCase
 		$this->expectExceptionMessage(
 			'Called ' . Parse::class . '::referenceClassName with an invalid token'
 		);
-		$error_reporting = error_reporting(0);
 		Parse::referenceClassName([T_CLASS, 'class', 1], [], '');
-		error_reporting($error_reporting);
 	}
 
 	//-------------------------------------------------------------------------------------- tokensTo

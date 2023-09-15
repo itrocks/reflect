@@ -5,6 +5,26 @@ abstract class MP
 {
 	use MPT;
 
+	//---------------------------------------------------------------------- $private_parent_property
+	/** @phpstan-ignore-next-line Never read: For testing purpose */
+	private mixed $private_parent_property = null;
+
+	//---------------------------------------------------------------- $private_parent_trait_property
+	/** @phpstan-ignore-next-line Never read: For testing purpose */
+	private mixed $private_parent_trait_property = null;
+
+	//-------------------------------------------------------------------- $protected_parent_property
+	protected mixed $protected_parent_property = null;
+
+	//----------------------------------------------------------------------- $public_parent_property
+	public mixed $public_parent_property = null;
+
+	//-------------------------------------------------------------------------- overrideParentMethod
+	public function overrideParentMethod() : int
+	{
+		return 1;
+	}
+
 	//-------------------------------------------------------------- privateAbstractParentTraitMethod
 	/**
 	 * @noinspection PhpUnusedPrivateMethodInspection For testing purpose
