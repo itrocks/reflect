@@ -347,7 +347,7 @@ class Reflection_Method_Test extends TestCase
 	//------------------------------------------------------------------------ testGetPrototypeString
 	/** @throws ReflectionException */
 	#[TestWith([0, 'publicClassMethod', 'public function publicClassMethod() : void'])]
-	#[TestWith([1, 'withParameter', 'public function withParameter(string $parameter) : string'])]
+	#[TestWith([1, 'withParameter', "public function withParameter(string &\$parameter = 'default') : string"])]
 	public function testGetPrototypeString(int $key, string $method_name, string $expected) : void
 	{
 		$method = new Reflection_Method(C::class, $method_name);

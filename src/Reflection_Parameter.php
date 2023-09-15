@@ -2,6 +2,7 @@
 namespace ITRocks\Reflect;
 
 use ITRocks\Reflect\Type\Reflection_Type;
+use ReflectionException;
 use ReflectionParameter;
 use ReturnTypeWillChange;
 
@@ -17,7 +18,14 @@ class Reflection_Parameter extends ReflectionParameter implements Interfaces\Ref
 		$optional  = $this->isOptional();
 		if ($optional) {
 			/** @noinspection PhpUnhandledExceptionInspection isOptional */
-			$default = $this->getDefaultValueConstantName() ?? $this->getDefaultValue();
+			$default = $this->getDefaultValueConstantName();
+			if (!isset($default)) {
+				/** @noinspection PhpUnhandledExceptionInspection isOptional */
+				$default = $this->getDefaultValue();
+				if (is_string($default)) {
+					$default = "'" . str_replace("'", "\\'", $default) . "'";
+				}
+			}
 		}
 		return (($type === '') ? '' : ($type . ' '))
 			. ($reference ? '&' : '')
@@ -26,11 +34,12 @@ class Reflection_Parameter extends ReflectionParameter implements Interfaces\Ref
 	}
 
 	//--------------------------------------------------------------------------------- getDocComment
+	/** @throws ReflectionException */
 	public function getDocComment(
 		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
 	) : string|false
 	{
-		return false;
+		throw new ReflectionException('This feature has not been implemented yet');
 	}
 
 	//--------------------------------------------------------------------------------------- getType

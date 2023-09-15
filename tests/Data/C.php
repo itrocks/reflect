@@ -39,8 +39,9 @@ class C extends P implements I
 	{}
 
 	//--------------------------------------------------------------------------------- withParameter
-	public function withParameter(string $parameter) : string
+	public function withParameter(string &$parameter = 'default') : string
 	{
+		$parameter .= '-';
 		return $parameter;
 	}
 
