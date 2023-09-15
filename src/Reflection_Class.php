@@ -490,11 +490,13 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		if ($filter === 0) {
 			return false;
 		}
-		if (
-			((($filter & self::T_EXTENDS) > 0) && class_exists($name))
-			|| ((($filter & self::T_IMPLEMENTS) > 0) && interface_exists($name))
-		) {
+		if ((($filter & self::T_EXTENDS) > 0) && class_exists($name)) {
 			return is_a($this->name, $name, true);
+		}
+		if ((($filter & self::T_IMPLEMENTS) > 0) && interface_exists($name)) {
+			if (in_array($name, $this->getInterfaceNames($filter), true)) {
+				return true;
+			}
 		}
 		if ((($filter & self::T_USE) > 0) && trait_exists($name)) {
 			return in_array($name, $this->getTraitNames($filter), true);

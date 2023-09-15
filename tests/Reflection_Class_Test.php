@@ -384,8 +384,8 @@ class Reflection_Class_Test extends TestCase
 		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
 		$class    = new Reflection_Class($class_name);
 		$expected = [substr($expected, intval(strrpos($expected, '\\')) + 1) => $expected];
-		self::assertEquals($expected, $class->getNamespaceUse());
-		self::assertEquals($expected, $class->getNamespaceUse(), 'cached');
+		self::assertEquals($expected, $class->getNamespaceUse(), $class_name);
+		self::assertEquals($expected, $class->getNamespaceUse(), $class_name . ' cached');
 	}
 
 	//--------------------------------------------------------------------- testGetParentClassAndName
@@ -403,7 +403,9 @@ class Reflection_Class_Test extends TestCase
 		/** @noinspection PhpUnhandledExceptionInspection Always valid */
 		$class        = new Reflection_Class($class_name);
 		$parent_class = $class->getParentClass();
-		self::assertEquals($expected, ($parent_class === false) ? '' : $parent_class->name, "$class_name class");
+		self::assertEquals(
+			$expected, ($parent_class === false) ? '' : $parent_class->name, "$class_name class"
+		);
 		self::assertEquals($expected, $class->getParentClassName(), "$class_name name");
 	}
 
@@ -533,9 +535,11 @@ class Reflection_Class_Test extends TestCase
 				(new ReflectionClass($class_name))->getFileName()
 			))));
 		/** @noinspection PhpUnhandledExceptionInspection Valid class */
-		self::assertEquals($expected, (new Reflection_Class($class_name))->getTokens());
+		self::assertEquals($expected, (new Reflection_Class($class_name))->getTokens(), $class_name);
 		/** @noinspection PhpUnhandledExceptionInspection Valid class */
-		self::assertEquals($expected, (new Reflection_Class($class_name))->getTokens(), 'cache read');
+		self::assertEquals(
+			$expected, (new Reflection_Class($class_name))->getTokens(), $class_name . ' cache read'
+		);
 	}
 
 	//-------------------------------------------------------------------------- testGetTraitAndNames
@@ -545,8 +549,8 @@ class Reflection_Class_Test extends TestCase
 	 * @param list<class-string> $expected
 	 */
 	#[TestWith([0, C::class, Reflection::T_LOCAL, [T::class]])]
-	#[TestWith([0, C::class, Reflection::T_EXTENDS, [T::class, PT::class]])]
-	#[TestWith([0, C::class, Reflection::T_EXTENDS | Reflection::T_USE, [T::class, TT::class, PT::class]])]
+	#[TestWith([1, C::class, Reflection::T_EXTENDS, [T::class, PT::class]])]
+	#[TestWith([2, C::class, Reflection::T_EXTENDS | Reflection::T_USE, [T::class, TT::class, PT::class]])]
 	public function testGetTraitAndNames(int $key, string $class_name, int $filter, array $expected)
 		: void
 	{
@@ -561,6 +565,109 @@ class Reflection_Class_Test extends TestCase
 			),
 			"data set #$key traits"
 		);
+	}
+
+	//--------------------------------------------------------------------------------------- testIsA
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 * @param int<0,max>   $filter
+	 */
+	#[TestWith([0,  P::class,  Reflection::T_LOCAL,      false])]
+	#[TestWith([1,  P::class,  Reflection::T_EXTENDS,    true])]
+	#[TestWith([2,  P::class,  Reflection::T_IMPLEMENTS, false])]
+	#[TestWith([3,  P::class,  Reflection::T_USE,        false])]
+	#[TestWith([4,  P::class,  Reflection::T_INHERIT,    true])]
+	#[TestWith([5,  R::class,  Reflection::T_LOCAL,      false])]
+	#[TestWith([6,  R::class,  Reflection::T_EXTENDS,    true])]
+	#[TestWith([7,  R::class,  Reflection::T_EXTENDS,    true])]
+	#[TestWith([8,  T::class,  Reflection::T_LOCAL,      false])]
+	#[TestWith([9,  T::class,  Reflection::T_EXTENDS,    false])]
+	#[TestWith([10, T::class,  Reflection::T_IMPLEMENTS, false])]
+	#[TestWith([11, T::class,  Reflection::T_USE,        true])]
+	#[TestWith([12, T::class,  Reflection::T_INHERIT,    true])]
+	#[TestWith([13, TT::class, Reflection::T_LOCAL,      false])]
+	#[TestWith([14, TT::class, Reflection::T_EXTENDS,    false])]
+	#[TestWith([15, TT::class, Reflection::T_IMPLEMENTS, false])]
+	#[TestWith([16, TT::class, Reflection::T_USE,        true])]
+	#[TestWith([17, TT::class, Reflection::T_INHERIT,    true])]
+	#[TestWith([18, PT::class, Reflection::T_LOCAL,      false])]
+	#[TestWith([19, PT::class, Reflection::T_EXTENDS,    false])]
+	#[TestWith([20, PT::class, Reflection::T_IMPLEMENTS, false])]
+	#[TestWith([21, PT::class, Reflection::T_USE,        false])]
+	#[TestWith([22, PT::class, Reflection::T_EXTENDS | Reflection::T_USE, true])]
+	#[TestWith([23, PT::class, Reflection::T_INHERIT,    true])]
+	#[TestWith([24, I::class,  Reflection::T_LOCAL,      false])]
+	#[TestWith([25, I::class,  Reflection::T_EXTENDS,    false])]
+	#[TestWith([26, I::class,  Reflection::T_IMPLEMENTS, true])]
+	#[TestWith([27, I::class,  Reflection::T_USE,        false])]
+	#[TestWith([28, I::class,  Reflection::T_INHERIT,    true])]
+	#[TestWith([29, II::class, Reflection::T_LOCAL,      false])]
+	#[TestWith([30, II::class, Reflection::T_EXTENDS,    false])]
+	#[TestWith([31, II::class, Reflection::T_IMPLEMENTS, true])]
+	#[TestWith([32, II::class, Reflection::T_USE,        false])]
+	#[TestWith([33, II::class, Reflection::T_INHERIT,    true])]
+	#[TestWith([34, PI::class, Reflection::T_LOCAL,      false])]
+	#[TestWith([35, PI::class, Reflection::T_EXTENDS,    false])]
+	#[TestWith([36, PI::class, Reflection::T_IMPLEMENTS, false])]
+	#[TestWith([37, PI::class, Reflection::T_USE,        false])]
+	#[TestWith([38, PI::class, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, true])]
+	#[TestWith([39, PI::class, Reflection::T_INHERIT,    true])]
+	#[TestWith([40, C::class,  Reflection::T_LOCAL,      true])]
+	public function testIsA(int $key, string $class_name, int $filter, bool $expected) : void
+	{
+		$class = new Reflection_Class(C::class);
+		self::assertEquals($expected, $class->isA($class_name, $filter), "dataset #$key");
+	}
+
+	//-------------------------------------------------------------------------------- testIsAbstract
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 */
+	#[TestWith([0, A::class,  false, true])]
+	#[TestWith([1, A::class,  true,  true])]
+	#[TestWith([2, C::class,  false, false])]
+	#[TestWith([3, C::class,  true,  false])]
+	#[TestWith([4, T::class,  false, false])]
+	#[TestWith([5, T::class,  true,  true])]
+	#[TestWith([6, I::class,  false, true])]
+	#[TestWith([7, I::class,  true,  true])]
+	#[TestWith([8, II::class, false, false])]
+	#[TestWith([9, II::class, true,  true])]
+	public function testIsAbstract(
+		int $key, string $class_name, bool $interface_trait_is_abstract, bool $expected
+	) : void
+	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
+		$class = new Reflection_Class($class_name);
+		self::assertEquals(
+			$expected, $class->isAbstract($interface_trait_is_abstract), "dataset #$key"
+		);
+	}
+
+	//----------------------------------------------------------------------------------- testIsClass
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 */
+	#[TestWith([A::class, true])]
+	#[TestWith([C::class, true])]
+	#[TestWith([T::class, false])]
+	#[TestWith([I::class, false])]
+	public function testIsClass(string $class_name, bool $expected) : void
+	{
+		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
+		$class = new Reflection_Class($class_name);
+		self::assertEquals($expected, $class->isClass(), $class_name);
+	}
+
+	//---------------------------------------------------------------------------------------- testOf
+	public function testOf() : void
+	{
+		$class = Reflection_Class::of(C::class);
+		self::assertInstanceOf(Reflection_Class::class, $class, 'instance');
+		self::assertEquals(C::class, $class->name, 'name');
 	}
 
 }
