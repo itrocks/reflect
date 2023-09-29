@@ -631,4 +631,10 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		return new static($object_or_class);
 	}
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string
+	{
+		return $this->name;
+	}
+
 }

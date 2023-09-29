@@ -2,11 +2,13 @@
 namespace ITRocks\Reflect\Tests;
 
 use Attribute;
+use ITRocks\Reflect\Attribute\Has_Default;
 use ITRocks\Reflect\Reflection_Attribute;
 use ITRocks\Reflect\Reflection_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\C;
 use ITRocks\Reflect\Tests\Attribute\Data\CII;
 use ITRocks\Reflect\Tests\Attribute\Data\Foo;
+use ITRocks\Reflect\Tests\Attribute\Data\Has_Default_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\Inheritable_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\Inheritable_Repeatable_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\P;
@@ -100,6 +102,35 @@ class Reflection_Attribute_Test extends TestCase
 	{
 		[$native_attribute, $reflection_attribute] = $this->newFoo();
 		self::assertEquals($native_attribute->getName(), $reflection_attribute->getName());
+	}
+	//--------------------------------------------------------------------------------- testGetTarget
+	public function testGetTarget() : void
+	{
+		foreach ((new Reflection_Class(Foo::class))->getAttributes() as $attribute) {
+			self::assertEquals(Attribute::TARGET_CLASS, $attribute->getTarget());
+		}
+		$attributes = (new Reflection_Class(C::class))->getAttributes(null, Reflection_Class::T_ALL);
+		foreach ($attributes as $attribute) {
+			self::assertEquals(Attribute::TARGET_CLASS, $attribute->getTarget());
+		}
+	}
+
+	//-------------------------------------------------------------------------------- testHasDefault
+	public function testHasDefault() : void
+	{
+		$class      = new ReflectionClass(Has_Default_Class::class);
+		$attributes = $class->getAttributes(Has_Default::class);
+		self::assertCount(1, $attributes);
+		/** @var Has_Default $instance */
+		$instance = $attributes[0]->newInstance();
+		self::assertEquals(['default'], $instance->arguments);
+
+		$attributes = (new Reflection_Class(C::class))->getAttributes(Has_Default_Class::class);
+		self::assertCount(1, $attributes);
+		self::assertInstanceOf(Reflection_Attribute::class, $attributes[0]);
+		self::assertEquals(Has_Default_Class::class, $attributes[0]->getName());
+		self::assertCount(1, $attributes[0]->getArguments());
+		self::assertEquals(['default'], $attributes[0]->getArguments());
 	}
 
 	//----------------------------------------------------------------------------- testIsInheritable

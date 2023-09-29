@@ -207,4 +207,10 @@ class Reflection_Property extends ReflectionProperty implements Interface\Reflec
 			&& ($property->getDeclaringClassName(true) === $this->getDeclaringClassName(true));
 	}
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string
+	{
+		return $this->getFinalClassName() . '::' . $this->name;
+	}
+
 }

@@ -130,4 +130,11 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 		return Type::of(parent::getType(), $this);
 	}
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string
+	{
+		$function = $this->getDeclaringFunction();
+		return $function->getFinalClassName() . '::' . $function->name . '::' . $this->name;
+	}
+
 }

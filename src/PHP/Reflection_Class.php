@@ -299,4 +299,10 @@ class Reflection_Class implements Interface\Reflection_Class
 		return new static($object_or_class);
 	}
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string
+	{
+		return $this->name;
+	}
+
 }

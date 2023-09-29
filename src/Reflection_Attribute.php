@@ -27,8 +27,8 @@ use ReflectionProperty;
  *   when not explicitly declared
  *
  * @implements Interface\Reflection_Attribute<Declaring,Instance>
- * @template Declaring of Reflection
- * @template Instance of object
+ * @template-covariant Declaring of Reflection
+ * @template-covariant Instance of object
  */
 class Reflection_Attribute implements Interface\Reflection_Attribute
 {
@@ -39,14 +39,13 @@ class Reflection_Attribute implements Interface\Reflection_Attribute
 	protected ?array $arguments = null;
 
 	//------------------------------------------------------------------------------------ $attribute
-	/** @var ($target is null ? ReflectionAttribute<Instance> : null) */
+	/**
+	 * @phpstan-ignore-next-line Template type Instance is declared as covariant, but occurs in invariant position
+	 * @var ($target is null ? ReflectionAttribute<Instance> : null)
+	 */
 	protected ?ReflectionAttribute $attribute;
 
 	//------------------------------------------------------------------------------------ $declaring
-	/**
-	 * @noinspection PhpDocFieldTypeMismatchInspection Property type does not match
-	 * @var Declaring
-	 */
 	protected Reflection $declaring;
 
 	//------------------------------------------------------------------------------ $declaring_class
@@ -56,6 +55,7 @@ class Reflection_Attribute implements Interface\Reflection_Attribute
 	//---------------------------------------------------------------------------------------- $final
 	/**
 	 * @noinspection PhpDocFieldTypeMismatchInspection Property type does not match
+	 * @phpstan-ignore-next-line Template type Instance is declared as covariant, but occurs in invariant position
 	 * @var Declaring
 	 */
 	protected Reflection $final;
@@ -63,6 +63,7 @@ class Reflection_Attribute implements Interface\Reflection_Attribute
 	//------------------------------------------------------------------------------------- $instance
 	/**
 	 * @noinspection PhpDocFieldTypeMismatchInspection Property type does not match
+	 * @phpstan-ignore-next-line Template type Instance is declared as covariant, but occurs in invariant position
 	 * @var ?Instance
 	 */
 	protected ?object $instance;
@@ -79,7 +80,7 @@ class Reflection_Attribute implements Interface\Reflection_Attribute
 	protected bool $is_repeated = false;
 
 	//----------------------------------------------------------------------------------------- $name
-	/** @var class-string<Instance> */
+	/** @var class-string */
 	protected string $name;
 
 	//--------------------------------------------------------------------------------------- $target
@@ -154,7 +155,6 @@ class Reflection_Attribute implements Interface\Reflection_Attribute
 			return $declaring->getDeclaringClass($trait);
 		}
 		/** @var Reflection_Parameter<Declaring> $declaring Last possibility */
-		/** @phpstan-ignore-next-line ? */
 		return $declaring->getDeclaringFunction()->getDeclaringClass($trait);
 	}
 

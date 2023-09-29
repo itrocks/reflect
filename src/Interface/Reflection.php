@@ -107,4 +107,7 @@ interface Reflection
 	public static function newReflectionProperty(object|string $object_or_class, string $property)
 		: Reflection_Property;
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string;
+
 }

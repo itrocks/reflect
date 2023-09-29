@@ -286,4 +286,10 @@ class Reflection_Method extends ReflectionMethod implements Interface\Reflection
 		return false;
 	}
 
+	//------------------------------------------------------------------------------------------ path
+	public function path() : string
+	{
+		return $this->getFinalClassName() . '::' . $this->name;
+	}
+
 }

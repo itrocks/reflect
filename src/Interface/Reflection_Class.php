@@ -154,4 +154,8 @@ interface Reflection_Class extends Reflection
 	 */
 	public static function of(object|string $object_or_class) : self;
 
+	//------------------------------------------------------------------------------------------ path
+	/** @return class-string<Class> */
+	public function path() : string;
+
 }

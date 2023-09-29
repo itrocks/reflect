@@ -7,8 +7,8 @@ use ReflectionAttribute;
 use ReflectionException;
 
 /**
- * @template Declaring of Reflection
- * @template Instance of object
+ * @template-covariant Declaring of Reflection
+ * @template-covariant Instance of object
  */
 interface Reflection_Attribute
 {
@@ -26,10 +26,6 @@ interface Reflection_Attribute
 	public function getArguments() : array;
 
 	//---------------------------------------------------------------------------------- getDeclaring
-	/**
-	 * @noinspection PhpDocSignatureInspection Return type does not match the declared
-	 * @return Declaring
-	 */
 	public function getDeclaring() : Reflection;
 
 	//----------------------------------------------------------------------------- getDeclaringClass
