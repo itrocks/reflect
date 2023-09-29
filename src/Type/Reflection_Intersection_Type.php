@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Type;
 
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 use ReflectionIntersectionType;
 
 class Reflection_Intersection_Type implements Reflection_Multiple_Type

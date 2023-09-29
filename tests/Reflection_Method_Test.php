@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests;
 
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 use ITRocks\Reflect\Reflection_Method;
 use ITRocks\Reflect\Tests\Data\A;
 use ITRocks\Reflect\Tests\Data\C;
@@ -132,10 +132,10 @@ class Reflection_Method_Test extends TestCase
 		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection_method = new Reflection_Method(reset($callable), end($callable));
 		self::assertEquals(
-			$expected, $reflection_method->getDeclaringTraitName(), "data set #$key name"
+			$expected, $reflection_method->getDeclaringClassName(true), "data set #$key name"
 		);
 		self::assertEquals(
-			$expected, $reflection_method->getDeclaringTrait()->name, "data set #$key trait"
+			$expected, $reflection_method->getDeclaringClass(true)->name, "data set #$key trait"
 		);
 	}
 
@@ -259,28 +259,32 @@ class Reflection_Method_Test extends TestCase
 	 * @param array{class-string,string} $callable
 	 * @param ?array{class-string,string} $expected
 	 */
-	#[TestWith([0,  [A::class, 'publicInterfaceMethod'],              null])]
-	#[TestWith([1,  [C::class, 'publicClassMethod'],                  null])]
-	#[TestWith([2,  [C::class, 'publicInterfaceMethod'],              [I::class, 'publicInterfaceMethod']])]
-	#[TestWith([3,  [C::class, 'publicParentInterfaceMethod'],        [PI::class, 'publicParentInterfaceMethod']])]
-	#[TestWith([4,  [C::class, 'publicParentMethod'],                 null])]
-	#[TestWith([5,  [C::class, 'publicParentTraitMethod'],            null])]
-	#[TestWith([6,  [C::class, 'publicParentTraitOverriddenMethod'],  [P::class, 'publicParentTraitOverriddenMethod']])]
-	#[TestWith([7,  [C::class, 'publicRenamedTraitOverriddenMethod'], null])]
-	#[TestWith([8,  [C::class, 'publicRootMethod'],                   null])]
-	#[TestWith([9,  [C::class, 'publicRootOverriddenMethod'],         [R::class, 'publicRootOverriddenMethod']])]
-	#[TestWith([10, [C::class, 'publicTraitMethod'],                  null])]
-	#[TestWith([11, [C::class, 'publicTraitOverriddenMethod'],        null])]
-	#[TestWith([12, [C::class, 'publicTraitTraitMethod'],             null])]
-	#[TestWith([13, [O::class, 'publicInterfaceMethod'],              [I::class, 'publicInterfaceMethod']])]
-	#[TestWith([14, [O::class, 'publicParentInterfaceMethod'],        [P::class, 'publicParentInterfaceMethod']])]
-	#[TestWith([15, [O::class, 'publicTraitMethod'],                  null])]
-	#[TestWith([16, [O::class, 'publicTraitInterfaceMethod'],         [OI::class, 'publicTraitInterfaceMethod']])]
-	#[TestWith([17, [O::class, 'publicTraitOverriddenMethod'],        null])]
-	#[TestWith([18, [O::class, 'publicTraitTraitMethod'],             null])]
-	#[TestWith([19, [P::class, 'publicParentInterfaceMethod'],        [PI::class, 'publicParentInterfaceMethod']])]
-	#[TestWith([20, [PI::class, 'publicParentInterfaceMethod'],       null])]
-	#[TestWith([21, [C::class, 'privateParentMethod'],                null])]
+	#[TestWith([0,  [A::class,  'publicInterfaceMethod'],       null])]
+	#[TestWith([1,  [C::class,  'privateParentMethod'],         null])]
+	#[TestWith([2,  [C::class,  'publicClassMethod'],           null])]
+	#[TestWith([3,  [C::class,  'publicInterfaceMethod'],       [I::class, 'publicInterfaceMethod']])]
+	#[TestWith([4,  [C::class,  'publicOverridePrivateMethod'], null])]
+	#[TestWith([5,  [C::class,  'publicOverridePrivateMethodWithPrototype'], [I::class, 'publicOverridePrivateMethodWithPrototype']])]
+	#[TestWith([6,  [C::class,  'publicParentInterfaceMethod'], [PI::class, 'publicParentInterfaceMethod']])]
+	#[TestWith([7,  [C::class,  'publicParentMethod'],          null])]
+	#[TestWith([8,  [C::class,  'publicParentTraitMethod'],     null])]
+	#[TestWith([9,  [C::class,  'publicParentTraitOverriddenMethod'], [P::class, 'publicParentTraitOverriddenMethod']])]
+	#[TestWith([10, [C::class,  'publicRenamedTraitOverriddenMethod'], null])]
+	#[TestWith([11, [C::class,  'publicRootMethod'],            null])]
+	#[TestWith([12, [C::class,  'publicRootOverriddenMethod'],  [R::class, 'publicRootOverriddenMethod']])]
+	#[TestWith([13, [C::class,  'publicTraitMethod'],           null])]
+	#[TestWith([14, [C::class,  'publicTraitOverriddenMethod'], null])]
+	#[TestWith([15, [C::class,  'publicTraitTraitMethod'],      null])]
+	#[TestWith([16, [O::class,  'publicInterfaceMethod'],       [I::class, 'publicInterfaceMethod']])]
+	#[TestWith([17, [O::class,  'publicParentInterfaceMethod'], [P::class, 'publicParentInterfaceMethod']])]
+	#[TestWith([18, [O::class,  'publicTraitMethod'],           null])]
+	#[TestWith([19, [O::class,  'publicTraitInterfaceMethod'],  [OI::class, 'publicTraitInterfaceMethod']])]
+	#[TestWith([20, [O::class,  'publicTraitOverriddenMethod'], null])]
+	#[TestWith([21, [O::class,  'publicTraitTraitMethod'],      null])]
+	#[TestWith([22, [P::class,  'publicOverridePrivateMethod'], null])]
+	#[TestWith([23, [P::class,  'publicOverridePrivateMethodWithPrototype'], [I::class, 'publicOverridePrivateMethodWithPrototype']])]
+	#[TestWith([24, [P::class,  'publicParentInterfaceMethod'], [PI::class, 'publicParentInterfaceMethod']])]
+	#[TestWith([25, [PI::class, 'publicParentInterfaceMethod'], null])]
 	public function testGetParent(int $key, array $callable, ?array $expected) : void
 	{
 		/** @noinspection PhpUnhandledExceptionInspection Valid callable */

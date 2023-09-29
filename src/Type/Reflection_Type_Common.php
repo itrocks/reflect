@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Type;
 
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 
 trait Reflection_Type_Common
 {

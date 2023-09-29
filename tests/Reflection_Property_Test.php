@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests;
 
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 use ITRocks\Reflect\Reflection_Property;
 use ITRocks\Reflect\Tests\Data\F;
 use ITRocks\Reflect\Tests\Data\Limited;
@@ -94,8 +94,8 @@ class Reflection_Property_Test extends TestCase
 	{
 		/** @noinspection PhpUnhandledExceptionInspection Valid property */
 		$reflection = new Reflection_Property($class, $name);
-		self::assertEquals($expected, $reflection->getDeclaringTraitName(), "data set #$key name");
-		self::assertEquals($expected, $reflection->getDeclaringTrait()->name, "data set #$key class");
+		self::assertEquals($expected, $reflection->getDeclaringClassName(true), "data set #$key name");
+		self::assertEquals($expected, $reflection->getDeclaringClass(true)->name, "data set #$key class");
 	}
 
 	//----------------------------------------------------------------------------- testGetDocComment
@@ -120,7 +120,7 @@ class Reflection_Property_Test extends TestCase
 	#[TestWith([13, Trait_2::class, 'property', Reflection::T_INHERIT, "/** 1 */\n/** 2 */"])]
 	#[TestWith([14, Trait_3::class, 'property', Reflection::T_INHERIT, "/** 2 */"])]
 	#[TestWith([15, Limited::class, 'property', Reflection::T_INHERIT, "/** 2 */"])] // Special case : could not differentiate property from the class and the trait => force inherit
-	#[TestWith([16, More::class, 'private', Reflection::T_INHERIT, "/**\n\t * B\n\t * @phpstan-ignore-next-line For testing\n\t */"])]
+	#[TestWith([16, More::class, 'private', Reflection::T_INHERIT, "/**\n\t * B\n\t * @noinspection PhpUnusedPrivateFieldInspection\n\t * @phpstan-ignore-next-line For testing\n\t */"])]
 	#[TestWith([17, MC::class, 'public_class_property',                   Reflection::T_LOCAL, "/** MC:class_property */"])]
 	#[TestWith([18, F::class,  'public_class_property',                   Reflection::T_LOCAL, "/** MC:class_property */"])]
 	#[TestWith([19, F::class,  'public_final_property',                   Reflection::T_LOCAL, "/** F:final_property */"])]
@@ -186,7 +186,7 @@ class Reflection_Property_Test extends TestCase
 	#[TestWith([10, MC::class, 'public_parent_trait_property',            Reflection::T_INHERIT, "/** FROM " . MPT::class . " */\n/** MPT:parent_trait_property */"])]
 	#[TestWith([14, Trait_3::class, 'property', Reflection::T_INHERIT, "/** FROM " . Trait_3::class . " */\n/** 2 */"])]
 	#[TestWith([15, Limited::class, 'property', Reflection::T_INHERIT, "/** FROM " . Trait_3::class . " */\n/** 2 */"])] // Special case : could not differentiate property from the class and the trait => force inherit
-	#[TestWith([16, More::class, 'private', Reflection::T_INHERIT, "/** FROM " . More::class . " */\n/**\n\t * B\n\t * @phpstan-ignore-next-line For testing\n\t */"])]
+	#[TestWith([16, More::class, 'private', Reflection::T_INHERIT, "/** FROM " . More::class . " */\n/**\n\t * B\n\t * @noinspection PhpUnusedPrivateFieldInspection\n\t * @phpstan-ignore-next-line For testing\n\t */"])]
 	public function testGetDocCommentLocate(int $key, string $class, string $name, int $filter, string $expected) : void
 	{
 		require_once __DIR__ . '/Data/Trait_Property_Override.php';
@@ -248,7 +248,7 @@ class Reflection_Property_Test extends TestCase
 				? [
 					$parent->class,
 					$parent->getDeclaringClassName(),
-					$parent->getDeclaringTraitName(),
+					$parent->getDeclaringClassName(true),
 					$parent->name
 				]
 				: [],

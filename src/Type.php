@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect;
 
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 use ITRocks\Reflect\Type\Reflection_Intersection_Type;
 use ITRocks\Reflect\Type\Reflection_Named_Type;
 use ITRocks\Reflect\Type\Reflection_Type;

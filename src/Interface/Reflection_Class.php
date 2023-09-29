@@ -1,58 +1,80 @@
 <?php
-namespace ITRocks\Reflect\Interfaces;
+namespace ITRocks\Reflect\Interface;
 
+use ReflectionClass;
+use ReflectionClassConstant;
 use ReflectionException;
+use ReflectionMethod;
+use ReflectionProperty;
 
 /**
  * An interface for all reflection classes
  *
- * @template T of object
+ * @template Class of object
  */
 interface Reflection_Class extends Reflection
 {
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @noinspection PhpDocSignatureInspection Inspector bug
-	 * @param class-string<T>|T $object_or_class
+	 * @noinspection PhpDocSignatureInspection Inspector bug?
+	 * @param class-string<Class>|Class $object_or_class
+	 * @throws ReflectionException
 	 */
 	public function __construct(object|string $object_or_class);
 
 	//----------------------------------------------------------------------------------- getConstant
-	/** Gets defined constant value */
 	public function getConstant(string $name) : mixed;
 
 	//---------------------------------------------------------------------------------- getConstants
-	/** @return array<string,mixed> */
-	public function getConstants(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
-		: array;
+	/**
+	 * @param ?int-mask-of<self::T_*|ReflectionClassConstant::IS_*> $filter
+	 * @return array<string,mixed>
+	 */
+	public function getConstants(?int $filter = self::T_INHERIT) : array;
 
 	//-------------------------------------------------------------------------------- getConstructor
-	/** Gets the constructor of the reflected class */
+	/** @return ?Reflection_Method<Class> */
 	public function getConstructor() : ?Reflection_Method;
 
 	//-------------------------------------------------------------------------- getDefaultProperties
-	/** @return array<string,mixed> Gets default value of properties */
+	/** @return array<string,mixed> */
 	public function getDefaultProperties() : array;
 
 	//----------------------------------------------------------------------------- getInterfaceNames
-	/** @return list<class-string> */
+	/**
+	 * @param int-mask-of<self::T_*> $filter
+	 * @return list<class-string>
+	 */
 	public function getInterfaceNames(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS)
 		: array;
 
 	//--------------------------------------------------------------------------------- getInterfaces
-	/** @return array<class-string,static> */
+	/**
+	 * @param int-mask-of<self::T_*> $filter
+	 * @return array<class-string<object>,Reflection_Class<object>>
+	 */
 	public function getInterfaces(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS)
 		: array;
 
 	//------------------------------------------------------------------------------------- getMethod
-	/** @throws ReflectionException */
+	/**
+	 * @return Reflection_Method<Class>
+	 * @throws ReflectionException
+	 */
 	public function getMethod(string $name) : Reflection_Method;
 
 	//------------------------------------------------------------------------------------ getMethods
-	/** @return array<string,Reflection_Method> */
-	public function getMethods(?int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
+	/**
+	 * @param ?int-mask-of<self::T_*|ReflectionMethod::IS_*> $filter
+	 * @return array<string,Reflection_Method<Class>>
+	 */
+	public function getMethods(?int $filter = self::T_INHERIT)
 		: array;
+
+	//--------------------------------------------------------------------------------------- getName
+	/** @return class-string<Class> */
+	public function getName() : string;
 
 	//------------------------------------------------------------------------------ getNamespaceName
 	public function getNamespaceName() : string;
@@ -61,19 +83,31 @@ interface Reflection_Class extends Reflection
 	public function getParentClass() : static|false;
 
 	//--------------------------------------------------------------------------------- getProperties
-	/** @return array<string,Reflection_Property> */
+	/**
+	 * @param ?int-mask-of<self::T_*|ReflectionProperty::IS_*> $filter
+	 * @return array<string,Reflection_Property<Class>>
+	 */
 	public function getProperties(?int $filter = self::T_EXTENDS | self::T_USE) : array;
 
 	//----------------------------------------------------------------------------------- getProperty
-	/** @throws ReflectionException */
+	/**
+	 * @return Reflection_Property<Class>
+	 * @throws ReflectionException
+	 */
 	public function getProperty(string $name) : Reflection_Property;
 
 	//--------------------------------------------------------------------------------- getTraitNames
-	/** @return list<class-string> */
+	/**
+	 * @param int-mask-of<self::T_*|ReflectionClass::IS_*> $filter
+	 * @return list<class-string>
+	 */
 	public function getTraitNames(int $filter = self::T_LOCAL) : array;
 
 	//------------------------------------------------------------------------------------- getTraits
-	/** @return array<class-string,static> */
+	/**
+	 * @param int-mask-of<self::T_*|ReflectionClass::IS_*> $filter
+	 * @return array<class-string,Reflection_Class<object>>
+	 */
 	public function getTraits(int $filter = self::T_LOCAL) : array;
 
 	//----------------------------------------------------------------------------------- inNamespace
@@ -83,7 +117,8 @@ interface Reflection_Class extends Reflection
 	/**
 	 * Returns true if the class has $name into its parents, interfaces or traits
 	 *
-	 * @param class-string $name
+	 * @param class-string           $name
+	 * @param int-mask-of<self::T_*> $filter
 	 */
 	public function isA(string $name, int $filter = self::T_INHERIT) : bool;
 
@@ -91,7 +126,7 @@ interface Reflection_Class extends Reflection
 	public function isAbstract(bool $interface_trait_is_abstract = false) : bool;
 
 	//--------------------------------------------------------------------------------------- isClass
-	/** Checks if this class is a class (not an interface or a trait) */
+	/** Checks if this class is a class (neither an interface nor a trait) */
 	public function isClass() : bool;
 
 	//--------------------------------------------------------------------------------------- isFinal
@@ -104,17 +139,19 @@ interface Reflection_Class extends Reflection
 	public function isInterface() : bool;
 
 	//------------------------------------------------------------------------------------ isInternal
-	/** Checks if class is defined internally by an extension, or the core */
 	public function isInternal() : bool;
 
 	//--------------------------------------------------------------------------------- isUserDefined
-	/** Checks if user defined */
 	public function isUserDefined() : bool;
 
 	//-------------------------------------------------------------------------------------------- of
 	/**
-	 * @param class-string|object $object_or_class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
+	 * @return self<C>
+	 * @template C of object
+	 * @throws ReflectionException
 	 */
-	public static function of(object|string $object_or_class) : static;
+	public static function of(object|string $object_or_class) : self;
 
 }

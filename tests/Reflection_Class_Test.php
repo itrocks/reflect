@@ -2,7 +2,7 @@
 namespace ITRocks\Reflect\Tests;
 
 use CA;
-use ITRocks\Reflect\Interfaces\Reflection;
+use ITRocks\Reflect\Interface\Reflection;
 use ITRocks\Reflect\Reflection_Class;
 use ITRocks\Reflect\Reflection_Method;
 use ITRocks\Reflect\Reflection_Property;
@@ -55,9 +55,9 @@ class Reflection_Class_Test extends TestCase
 
 	//---------------------------------------------------------------------- testGetClassListAndNames
 	/**
-	 * @param int                $key
-	 * @param int<0,max>         $filter
-	 * @param list<class-string> $expected
+	 * @param int                          $key
+	 * @param int-mask-of<Reflection::T_*> $filter
+	 * @param list<class-string>           $expected
 	 */
 	#[TestWith([0, Reflection::T_LOCAL, [C::class]])]
 	#[TestWith([1, Reflection::T_EXTENDS, [C::class, P::class, R::class]])]
@@ -78,8 +78,8 @@ class Reflection_Class_Test extends TestCase
 
 	//------------------------------------------------------------------------------ testGetClassTree
 	/**
-	 * @param int        $key
-	 * @param int<0,max> $filter
+	 * @param int                          $key
+	 * @param int-mask-of<Reflection::T_*> $filter
 	 * @param array<class-string,array<class-string,array<class-string,array<class-string,mixed>>>> $expected
 	 */
 	#[TestWith([0, Reflection::T_LOCAL,                              [C::class => []]])]
@@ -113,8 +113,8 @@ class Reflection_Class_Test extends TestCase
 	//----------------------------------------------------------------------------- testGetDocComment
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 * @param int<0,max> $filter
+	 * @param class-string                 $class_name
+	 * @param int-mask-of<Reflection::T_*> $filter
 	 */
 	#[TestWith([0,  C::class, Reflection::T_LOCAL, "/** C:DC */"])]
 	#[TestWith([1,  C::class, Reflection::T_EXTENDS, "/** C:DC */\n/** P:DC */\n/** R:DC */"])]
@@ -151,8 +151,8 @@ class Reflection_Class_Test extends TestCase
 	//----------------------------------------------------------------------- testGetDocCommentLocate
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 * @param int<0,max> $filter
+	 * @param class-string                 $class_name
+	 * @param int-mask-of<Reflection::T_*> $filter
 	 */
 	#[TestWith([0,  C::class, Reflection::T_LOCAL, "/** FROM " . C::class . " */\n/** C:DC */"])]
 	#[TestWith([1,  C::class, Reflection::T_EXTENDS, "/** FROM " . C::class . " */\n/** C:DC */\n/** FROM " . P::class . " */\n/** P:DC */\n/** FROM " . R::class . " */\n/** R:DC */"])]
@@ -190,9 +190,9 @@ class Reflection_Class_Test extends TestCase
 	//------------------------------------------------------------------------- testGetInterfaceNames
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 * @param int<0,max>         $filter
-	 * @param list<class-string> $expected
+	 * @param class-string                 $class_name
+	 * @param int-mask-of<Reflection::T_*> $filter
+	 * @param list<class-string>           $expected
 	 */
 	#[TestWith([0, C::class, Reflection::T_LOCAL, [I::class]])]
 	#[TestWith([1, C::class, Reflection::T_IMPLEMENTS, [I::class, II::class]])]
@@ -245,8 +245,8 @@ class Reflection_Class_Test extends TestCase
 	//-------------------------------------------------------------------------------- testGetMethods
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 * @param ?int<0,max>                                                $filter
+	 * @param class-string                                               $class_name
+	 * @param ?int-mask-of<Reflection::T_*>                              $filter
 	 * @param list<array{class-string,string,class-string,class-string}> $expected
 	 */
 	#[TestWith([0, MC::class, Reflection::T_LOCAL, [
@@ -387,7 +387,7 @@ class Reflection_Class_Test extends TestCase
 				$method->getDeclaringClassName(),
 				$method->getName(),
 				$method->getFinalClassName(),
-				$method->getDeclaringTraitName()
+				$method->getDeclaringClassName(true)
 			]);
 		}
 		foreach ($expected as &$line) {
@@ -456,7 +456,7 @@ class Reflection_Class_Test extends TestCase
 	//----------------------------------------------------------------------------- testGetProperties
 	/**
 	 * @param class-string                                               $class_name
-	 * @param ?int<0,max>                                                $filter
+	 * @param ?int-mask-of<Reflection::T_*>                              $filter
 	 * @param list<array{class-string,string,class-string,class-string}> $expected
 	 * @throws ReflectionException
 	 */
@@ -545,7 +545,7 @@ class Reflection_Class_Test extends TestCase
 				$method->getDeclaringClassName(),
 				$method->getName(),
 				$method->getFinalClassName(),
-				$method->getDeclaringTraitName()
+				$method->getDeclaringClassName(true)
 			]);
 		}
 		foreach ($expected as &$line) {
@@ -609,8 +609,9 @@ class Reflection_Class_Test extends TestCase
 	//-------------------------------------------------------------------------- testGetTraitAndNames
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string       $class_name
-	 * @param list<class-string> $expected
+	 * @param class-string                 $class_name
+	 * @param int-mask-of<Reflection::T_*> $filter
+	 * @param list<class-string>           $expected
 	 */
 	#[TestWith([0, C::class, Reflection::T_LOCAL, [T::class, TO::class ]])]
 	#[TestWith([1, C::class, Reflection::T_EXTENDS, [T::class, TO::class, PT::class]])]
@@ -634,8 +635,8 @@ class Reflection_Class_Test extends TestCase
 	//--------------------------------------------------------------------------------------- testIsA
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 * @param int<0,max>   $filter
+	 * @param class-string                 $class_name
+	 * @param int-mask-of<Reflection::T_*> $filter
 	 */
 	#[TestWith([0,  P::class,  Reflection::T_LOCAL,      false])]
 	#[TestWith([1,  P::class,  Reflection::T_EXTENDS,    true])]

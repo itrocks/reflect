@@ -1,6 +1,9 @@
 Reflect
 -------
 
+**Current status is: development in progress** \
+*Please don't consider this as a stable release.*
+
 Extends PHP Reflection API to add features:
 
 Annotations:

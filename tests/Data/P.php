@@ -14,6 +14,14 @@ abstract class P extends R implements I, PI
 	private function privateParentMethod() : void
 	{}
 
+	//------------------------------------------------------------------- publicOverridePrivateMethod
+	public function publicOverridePrivateMethod() : void
+	{}
+
+	//------------------------------------------------------ publicOverridePrivateMethodWithPrototype
+	public function publicOverridePrivateMethodWithPrototype() : void
+	{}
+
 	//------------------------------------------------------------------- publicParentInterfaceMethod
 	/** P::publicParentInterfaceMethod */
 	public function publicParentInterfaceMethod() : void

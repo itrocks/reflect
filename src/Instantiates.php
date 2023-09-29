@@ -1,7 +1,6 @@
 <?php
 namespace ITRocks\Reflect;
 
-use ITRocks\Reflect\Interfaces\Reflection;
 use ReflectionException;
 
 trait Instantiates
@@ -9,47 +8,58 @@ trait Instantiates
 
 	//--------------------------------------------------------------------------------- newReflection
 	/**
-	 * @param class-string $class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
+	 * @return ($member is null ? Reflection_Class<C> : Reflection_Method<C>|Reflection_Property<C>)
+	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflection(string $class, string $member = '') : Reflection
+	public static function newReflection(object|string $object_or_class, string $member = null)
+		: Reflection_Class|Reflection_Method|Reflection_Property
 	{
-		if ($member === '') {
-			return new Reflection_Class($class);
+		if (is_null($member)) {
+			return new Reflection_Class($object_or_class);
 		}
 		return str_starts_with($member, '$')
-			? new Reflection_Property($class, substr($member, 1))
-			: new Reflection_Method($class, $member);
+			? new Reflection_Property($object_or_class, substr($member, 1))
+			: new Reflection_Method($object_or_class, $member);
 	}
 
 	//---------------------------------------------------------------------------- newReflectionClass
 	/**
-	 * @param class-string<C> $class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Class<C>
 	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionClass(string $class) : Reflection_Class
+	public static function newReflectionClass(object|string $object_or_class) : Reflection_Class
 	{
-		return new Reflection_Class($class);
+		return new Reflection_Class($object_or_class);
 	}
 
 	//--------------------------------------------------------------------------- newReflectionMethod
 	/**
-	 * @param class-string $class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
+	 * @return Reflection_Method<C>
+	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionMethod(string $class, string $method) : Reflection_Method
+	public static function newReflectionMethod(object|string $object_or_class, string $method)
+		: Reflection_Method
 	{
-		return new Reflection_Method($class, $method);
+		return new Reflection_Method($object_or_class, $method);
 	}
 
 	//------------------------------------------------------------------------ newReflectionParameter
 	/**
-	 * @param array{object|string,string}|object|string $function
+	 * @param array{class-string<C>|C,string} $function
+	 * @return Reflection_Parameter<C>
+	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionParameter(array|object|string $function, int|string $param)
+	public static function newReflectionParameter(array $function, int|string $param)
 		: Reflection_Parameter
 	{
 		return new Reflection_Parameter($function, $param);
@@ -57,13 +67,16 @@ trait Instantiates
 
 	//------------------------------------------------------------------------- newReflectionProperty
 	/**
-	 * @param class-string $class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
+	 * @return Reflection_Property<C>
+	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionProperty(string $class, string $property)
+	public static function newReflectionProperty(object|string $object_or_class, string $property)
 		: Reflection_Property
 	{
-		return new Reflection_Property($class, $property);
+		return new Reflection_Property($object_or_class, $property);
 	}
 
 }

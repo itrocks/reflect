@@ -8,20 +8,23 @@ use ReflectionMethod;
 use ReturnTypeWillChange;
 
 /**
- * A rich extension of the PHP ReflectionMethod class, adding:
- * - annotations management
+ * @implements Interface\Reflection_Method<Class>
+ * @property class-string<Class> $class
+ * @template Class of object
  */
-class Reflection_Method extends ReflectionMethod implements Interfaces\Reflection_Method
+class Reflection_Method extends ReflectionMethod implements Interface\Reflection_Method
 {
+	use Attribute\Reflection_Method_Has;
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
-	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'final_class'?:class-string,'final_class_raw':class-string|object|string,'parent'?:static|null} */
+	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'final_class'?:class-string<Class>,'final_class_raw':class-string|object|string,'parent'?:static|null} */
 	private array $cache;
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param class-string|object|string $object_or_class_or_method
+	 * @noinspection PhpDocSignatureInspection $object_or_class_or_method Argument type does not match the declared
+	 * @param class-string<Class>|Class|string $object_or_class_or_method
 	 * @throws ReflectionException
 	 */
 	public function __construct(object|string $object_or_class_or_method, string $method = null)
@@ -37,7 +40,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	}
 
 	//------------------------------------------------------------------------------- forceFinalClass
-	/** @param class-string $final_class */
+	/** @param class-string<Class> $final_class */
 	public function forceFinalClass(string $final_class) : void
 	{
 		unset($this->cache['final_class_raw']);
@@ -46,53 +49,43 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 
 	//----------------------------------------------------------------------------- getDeclaringClass
 	/**
-	 * Gets the declaring class for the reflected method
-	 *
 	 * @noinspection PhpDocMissingThrowsInspection
 	 * @return Reflection_Class<object>
 	 */
-	public function getDeclaringClass() : Reflection_Class
+	public function getDeclaringClass(bool $trait = false) : Reflection_Class
 	{
 		/** @noinspection PhpUnhandledExceptionInspection $this->class is always valid */
-		return new Reflection_Class($this->class);
+		return ($trait && !parent::getDeclaringClass()->isInterface())
+			? $this->getDeclaringTrait(new Reflection_Class($this->class), $this->name)
+			: new Reflection_Class($this->class);
 	}
 
 	//------------------------------------------------------------------------- getDeclaringClassName
-	/** @return class-string declaring class name */
-	public function getDeclaringClassName() : string
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return class-string declaring class name
+	 */
+	public function getDeclaringClassName(bool $trait = false) : string
 	{
-		return $this->class;
+		/** @noinspection PhpUnhandledExceptionInspection $this->class is always valid */
+		return ($trait && !parent::getDeclaringClass()->isInterface())
+			? $this->getDeclaringTrait(new Reflection_Class($this->class), $this->name)->name
+			: $this->class;
 	}
 
 	//----------------------------------------------------------------------------- getDeclaringTrait
-	/** @return Reflection_Class<object> */
-	public function getDeclaringTrait() : Reflection_Class
-	{
-		if (isset($this->cache['declaring_trait'])) {
-			return $this->cache['declaring_trait'];
-		}
-		$declaring_trait = $this->getDeclaringClass();
-		if (!$declaring_trait->isInterface()) {
-			$declaring_trait = $this->getDeclaringTraitInternal($declaring_trait, $this->name);
-		}
-		$this->cache['declaring_trait'] = $declaring_trait;
-		return $declaring_trait;
-	}
-
-	//--------------------------------------------------------------------- getDeclaringTraitInternal
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param Reflection_Class<object> $class
 	 * @return Reflection_Class<object>
 	 */
-	private function getDeclaringTraitInternal(Reflection_Class $class, string $name)
-		: Reflection_Class
+	private function getDeclaringTrait(Reflection_Class $class, string $name) : Reflection_Class
 	{
 		if (is_null($alias = $class->getTraitAliases()[$name] ?? null)) {
 			$traits = $class->getTraits();
 		}
 		else {
-			/** @var class-string $trait_name */
+			/** @var class-string<object> $trait_name */
 			[$trait_name, $name] = explode('::', $alias);
 			/** @noinspection PhpUnhandledExceptionInspection getTraits */
 			$traits = [static::newReflectionClass($trait_name)];
@@ -105,16 +98,10 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 				&& ($method->getFileName()  === $this->getFileName())
 				&& ($method->getStartLine() === $this->getStartLine())
 			) {
-				return $this->getDeclaringTraitInternal($method->getDeclaringClass(), $method->name);
+				return $this->getDeclaringTrait($method->getDeclaringClass(), $method->name);
 			}
 		}
 		return $class;
-	}
-
-	//------------------------------------------------------------------------- getDeclaringTraitName
-	public function getDeclaringTraitName() : string
-	{
-		return $this->getDeclaringTrait()->name;
 	}
 
 	//--------------------------------------------------------------------------------- getDocComment
@@ -128,7 +115,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
-			$doc_comment = '/** FROM ' . $this->getDeclaringTraitName() . " */\n" . $doc_comment;
+			$doc_comment = '/** FROM ' . $this->getDeclaringClassName(true) . " */\n" . $doc_comment;
 		}
 		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
@@ -144,7 +131,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 		$depth ++;
 		/** @var list<class-string> $already */
 		static $already = [];
-		$already[] = $this->getDeclaringTraitName();
+		$already[] = $this->getDeclaringClassName(true);
 		if (($filter & self::T_IMPLEMENTS) > 0) {
 			foreach ($this->getFinalClass()->getInterfaces(self::T_LOCAL) as $interface) {
 				if (in_array($interface->name, $already, true) || !$interface->hasMethod($this->name)) {
@@ -160,7 +147,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 			(($filter & self::T_EXTENDS) > 0)
 			&& !is_null($parent = $this->getParent())
 			&& !in_array($parent->class, $already, true)
-			&& ((($filter & self::T_USE) > 0) || !$parent->getDeclaringTrait()->isTrait())
+			&& ((($filter & self::T_USE) > 0) || !$parent->getDeclaringClass(true)->isTrait())
 		) {
 			$append = $parent->getDocComment($filter, $cache, $locate);
 			if ($append !== false) {
@@ -180,7 +167,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	//--------------------------------------------------------------------------------- getFinalClass
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return Reflection_Class<object> The one where the method came from with a call to get...()
+	 * @return Reflection_Class<Class> The one where the method came from with a call to get...()
 	 */
 	public function getFinalClass() : Reflection_Class
 	{
@@ -189,7 +176,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	}
 
 	//----------------------------------------------------------------------------- getFinalClassName
-	/** @return class-string The one where the method came from with a call to get...() */
+	/** @return class-string<Class> The one where the method came from with a call to get...() */
 	public function getFinalClassName() : string
 	{
 		if (key_exists('final_class', $this->cache)) {
@@ -207,7 +194,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 				$final_class = substr($final_class, 0, $position);
 			}
 		}
-		/** @var class-string $final_class All cases lead to this */
+		/** @var class-string<Class> $final_class */
 		$this->cache['final_class'] = $final_class;
 		return $final_class;
 	}
@@ -215,7 +202,7 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 	//--------------------------------------------------------------------------------- getParameters
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return array<string,Reflection_Parameter>
+	 * @return array<string,Reflection_Parameter<Class>>
 	 */
 	public function getParameters() : array
 	{
@@ -237,12 +224,16 @@ class Reflection_Method extends ReflectionMethod implements Interfaces\Reflectio
 			$parent_class = $method->getFinalClass()->getParentClass();
 			if (($parent_class === false) || !$parent_class->hasMethod($method->name)) {
 				/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
-				return $this->hasPrototype() ? $this->getPrototype() : null;
+				return $this->hasPrototype()
+					? $this->getPrototype()
+					: null;
 			}
 			$method = $parent_class->getMethod($method->name);
 			if ($method->isPrivate()) {
 				/** @noinspection PhpUnhandledExceptionInspection hasPrototype */
-				return $this->hasPrototype() ? $this->getPrototype() : null;
+				return $this->hasPrototype()
+					? $this->getPrototype()
+					: null;
 			}
 		}
 		/** @noinspection PhpUnhandledExceptionInspection from getMethod */

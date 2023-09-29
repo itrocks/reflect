@@ -9,6 +9,9 @@ interface I extends II
 	/** I::publicInterfaceMethod */
 	public function publicInterfaceMethod() : void;
 
+	//------------------------------------------------------ publicOverridePrivateMethodWithPrototype
+	public function publicOverridePrivateMethodWithPrototype() : void;
+
 	//----------------------------------------------------------------------------- withoutDocComment
 	public function withoutDocComment() : void;
 

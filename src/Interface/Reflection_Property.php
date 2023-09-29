@@ -1,21 +1,25 @@
 <?php
-namespace ITRocks\Reflect\Interfaces;
+namespace ITRocks\Reflect\Interface;
 
 use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
 /**
  * An interface for all reflection method classes
+ *
+ * @extends Reflection_Class_Component<Class>
+ * @template Class of object
  */
 interface Reflection_Property extends Reflection_Class_Component
 {
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param class-string|object $class_name
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<Class>|Class $object_or_class
 	 * @throws ReflectionException
 	 */
-	public function __construct(object|string $class_name, string $property_name);
+	public function __construct(object|string $object_or_class, string $property);
 
 	//------------------------------------------------------------------------------------- getParent
 	public function getParent() : ?static;
@@ -27,6 +31,7 @@ interface Reflection_Property extends Reflection_Class_Component
 	public function getValue(object $object) : mixed;
 
 	//-------------------------------------------------------------------------------------------- is
+	/** @param Reflection_Property<object> $property */
 	public function is(Reflection_Property $property) : bool;
 
 	//-------------------------------------------------------------------------------------- isStatic

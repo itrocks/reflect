@@ -7,10 +7,13 @@ use ReflectionProperty;
 use ReturnTypeWillChange;
 
 /**
- * @property class-string $class
+ * @implements Interface\Reflection_Property<Class>
+ * @property class-string<Class> $class
+ * @template Class of object
  */
-class Reflection_Property extends ReflectionProperty implements Interfaces\Reflection_Property
+class Reflection_Property extends ReflectionProperty implements Interface\Reflection_Property
 {
+	use Attribute\Reflection_Property_Has;
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
@@ -18,58 +21,51 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	private array $cache = [];
 
 	//---------------------------------------------------------------------------------- $final_class
-	/** @var class-string */
-	public string $final_class;
+	/** @var class-string<Class> */
+	public readonly string $final_class;
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param class-string|object $class_name
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<Class>|Class $object_or_class
 	 * @throws ReflectionException
 	 */
-	public function __construct(object|string $class_name, string $property_name)
+	public function __construct(object|string $object_or_class, string $property)
 	{
-		parent::__construct($class_name, $property_name);
-		$this->final_class = is_object($class_name) ? get_class($class_name) : $class_name;
+		parent::__construct($object_or_class, $property);
+		$this->final_class = is_object($object_or_class)
+			? get_class($object_or_class)
+			: $object_or_class;
 	}
 
 	//----------------------------------------------------------------------------- getDeclaringClass
 	/**
-	 * Gets the declaring class for the reflected property
-	 *
 	 * @noinspection PhpDocMissingThrowsInspection
 	 * @return Reflection_Class<object>
 	 */
-	public function getDeclaringClass() : Reflection_Class
+	public function getDeclaringClass(bool $trait = false) : Reflection_Class
 	{
-		/** @noinspection PhpUnhandledExceptionInspection $this->class is always valid */
-		return new Reflection_Class($this->class);
+		/** @noinspection PhpUnhandledExceptionInspection valid $this->class */
+		return $trait
+			? $this->getDeclaringTrait(new Reflection_Class($this->class))
+			: new Reflection_Class($this->class);
 	}
 
 	//------------------------------------------------------------------------- getDeclaringClassName
-	/** @return class-string the declaring class name for the reflected property */
-	public function getDeclaringClassName() : string
+	public function getDeclaringClassName(bool $trait = false) : string
 	{
-		return $this->class;
+		/** @noinspection PhpUnhandledExceptionInspection valid $this->class */
+		return $trait
+			? $this->getDeclaringTrait(new Reflection_Class($this->class))->name
+			: $this->class;
 	}
 
 	//----------------------------------------------------------------------------- getDeclaringTrait
-	/** @return Reflection_Class<object> */
-	public function getDeclaringTrait() : Reflection_Class
-	{
-		if (isset($this->cache['declaring_trait'])) {
-			return $this->cache['declaring_trait'];
-		}
-		$declaring_trait = $this->getDeclaringTraitInternal($this->getDeclaringClass());
-		$this->cache['declaring_trait'] = $declaring_trait;
-		return $declaring_trait;
-	}
-
-	//--------------------------------------------------------------------- getDeclaringTraitInternal
 	/**
 	 * @param Reflection_Class<object> $class
 	 * @return Reflection_Class<object>
 	 */
-	private function getDeclaringTraitInternal(Reflection_Class $class) : Reflection_Class
+	private function getDeclaringTrait(Reflection_Class $class) : Reflection_Class
 	{
 		$traits = $class->getTraits();
 		foreach ($traits as $trait) {
@@ -77,18 +73,12 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 			if (
 				isset($property)
 				&& ($property->getDocComment() === $this->getDocComment())
-				&& (join(',', $property->getAttributes()) === join(',', $this->getAttributes()))
+				&& $this->hasSameAttributes($property)
 			) {
-				return $this->getDeclaringTraitInternal($trait);
+				return $this->getDeclaringTrait($trait);
 			}
 		}
 		return $class;
-	}
-
-	//------------------------------------------------------------------------- getDeclaringTraitName
-	public function getDeclaringTraitName() : string
-	{
-		return $this->getDeclaringTrait()->name;
 	}
 
 	//--------------------------------------------------------------------------------- getDocComment
@@ -102,7 +92,7 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
-			$doc_comment = '/** FROM ' . $this->getDeclaringTraitName() . " */\n" . $doc_comment;
+			$doc_comment = '/** FROM ' . $this->getDeclaringClassName(true) . " */\n" . $doc_comment;
 		}
 		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
@@ -118,14 +108,14 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 		static $already = [];
 		$depth ++;
 		/** @var list<class-string> $already */
-		$already[] = $this->getDeclaringTraitName();
+		$already[] = $this->getDeclaringClassName(true);
 		if (($filter & self::T_USE) > 0) {
 			foreach ($this->getFinalClass()->getTraits() as $trait) {
 				if (!$trait->hasProperty($this->name)) {
 					continue;
 				}
 				$property = $trait->getProperty($this->name);
-				if (in_array($property->getDeclaringTraitName(), $already, true)) {
+				if (in_array($property->getDeclaringClassName(true), $already, true)) {
 					continue;
 				}
 				$append = $trait->getProperty($this->name)->getDocComment($filter, $cache, $locate);
@@ -157,7 +147,7 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	//--------------------------------------------------------------------------------- getFinalClass
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return Reflection_Class<object>
+	 * @return Reflection_Class<Class>
 	 */
 	public function getFinalClass() : Reflection_Class
 	{
@@ -166,6 +156,7 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	}
 
 	//----------------------------------------------------------------------------- getFinalClassName
+	/** @return class-string<Class> */
 	public function getFinalClassName() : string
 	{
 		return $this->final_class;
@@ -209,10 +200,11 @@ class Reflection_Property extends ReflectionProperty implements Interfaces\Refle
 	}
 
 	//-------------------------------------------------------------------------------------------- is
-	public function is(Interfaces\Reflection_Property $property) : bool
+	public function is(Interface\Reflection_Property $property) : bool
 	{
-		return ($property->getName() === $this->getName())
-			&& ($property->getDeclaringTraitName() === $this->getDeclaringTraitName());
+		return ($property instanceof Reflection_Property)
+			&& ($property->getName() === $this->getName())
+			&& ($property->getDeclaringClassName(true) === $this->getDeclaringClassName(true));
 	}
 
 }

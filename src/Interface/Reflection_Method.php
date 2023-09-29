@@ -1,5 +1,5 @@
 <?php
-namespace ITRocks\Reflect\Interfaces;
+namespace ITRocks\Reflect\Interface;
 
 use ITRocks\Reflect\Reflection_Parameter;
 use ITRocks\Reflect\Type\Reflection_Type;
@@ -7,19 +7,23 @@ use ReflectionException;
 
 /**
  * An interface for all reflection method classes
+ *
+ * @extends Reflection_Class_Component<Class>
+ * @template Class of object
  */
 interface Reflection_Method extends Reflection_Class_Component
 {
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param class-string|object|string $object_or_class_or_method
+	 * @noinspection PhpDocSignatureInspection $object_or_class_or_method Argument type does not match the declared
+	 * @param class-string<Class>|Class|string $object_or_class_or_method
 	 * @throws ReflectionException
 	 */
 	public function __construct(object|string $object_or_class_or_method, string $method = null);
 
 	//--------------------------------------------------------------------------------- getParameters
-	/** @return array<string,Reflection_Parameter> */
+	/** @return array<string,Reflection_Parameter<Class>> */
 	public function getParameters() : array;
 
 	//------------------------------------------------------------------------------------- getParent

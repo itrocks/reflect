@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Tests;
 
-use ITRocks\Reflect\Interfaces\Reflection_Property;
+use ITRocks\Reflect\Interface\Reflection_Property;
 use ITRocks\Reflect\Type\Reflection_Multiple_Type;
 use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionClass;
@@ -19,6 +19,7 @@ abstract class Types extends ReflectionUnionType
 	public int|Types $int_types;
 
 	//--------------------------------------------------------------------------------------- $or_and
+	/** @var int|Types|(Reflection_Multiple_Type&Reflection_Type)|Reflection_Property<object>|null */
 	public int|Types|(Reflection_Type&Reflection_Multiple_Type)|Reflection_Property|null $or_and;
 
 	//---------------------------------------------------------------------------------------- $types

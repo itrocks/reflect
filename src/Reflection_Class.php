@@ -5,15 +5,15 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
-use ReturnTypeWillChange;
 
 /**
- * @extends ReflectionClass<T>
- * @implements Interfaces\Reflection_Class<T>
- * @template T of object
+ * @extends ReflectionClass<Class>
+ * @implements Interface\Reflection_Class<Class>
+ * @template Class of object
  */
-class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_Class
+class Reflection_Class extends ReflectionClass implements Interface\Reflection_Class
 {
+	use Attribute\Reflection_Class_Has;
 	use Instantiates;
 
 	//---------------------------------------------------------------------------------------- $cache
@@ -22,8 +22,8 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @noinspection PhpDocSignatureInspection Inspector bug
-	 * @param class-string<T>|T $object_or_class
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<Class>|Class $object_or_class
 	 * @throws ReflectionException
 	 */
 	public function __construct(object|string $object_or_class)
@@ -32,7 +32,10 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//---------------------------------------------------------------------------------- getClassList
-	/** @return array<class-string,static> */
+	/**
+	 * @param int-mask-of<self::T_*> $filter
+	 * @return array<class-string,Reflection_Class<object>>
+	 */
 	public function getClassList(int $filter = self::T_INHERIT) : array
 	{
 		$class_list = [$this->name => $this];
@@ -52,7 +55,10 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//----------------------------------------------------------------------------- getClassListNames
-	/** @return list<class-string> */
+	/**
+	 * @param int-mask-of<self::T_*> $filter
+	 * @return list<class-string>
+	 */
 	public function getClassListNames(int $filter = self::T_INHERIT) : array
 	{
 		$class_list = [$this->name];
@@ -78,7 +84,10 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//---------------------------------------------------------------------------------- getClassTree
-	/** @return array<class-string,array<class-string,array<class-string,array<class-string,mixed>>>> */
+	/**
+	 * @param int-mask-of<self::T_*> $filter
+	 * @return array<class-string,array<class-string,array<class-string,array<class-string,mixed>>>>
+	 */
 	public function getClassTree(int $filter = self::T_INHERIT) : array
 	{
 		$class_tree = [];
@@ -102,12 +111,16 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//-------------------------------------------------------------------------------- getConstructor
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return ?Reflection_Method<Class>
+	 */
 	public function getConstructor() : ?Reflection_Method
 	{
 		$constructor = parent::getConstructor();
 		if (isset($constructor)) {
 			/** @noinspection PhpUnhandledExceptionInspection $constructor is valid */
-			$constructor = new Reflection_Method($this->name, $constructor->name);
+			$constructor = static::newReflectionMethod($this->name, $constructor->name);
 		}
 		return $constructor;
 	}
@@ -125,13 +138,16 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		$implements    = [];
 		$namespace     = $this->getNamespaceName();
 		$namespace_use = $this->getNamespaceUse();
+		$start_line    = $this->getStartLine();
 		$tokens        = $this->getTokens();
-		$token         = current($tokens);
-		$token_id      = $this->isInterface() ? T_EXTENDS : T_IMPLEMENTS;
-		while ($token !== false) {
-			if ($token[0] === $token_id) {
-				break;
-			}
+		$token         = reset($tokens);
+		$token_id      = $this->isInterface()
+			? T_EXTENDS
+			: T_IMPLEMENTS;
+		while (($token !== false) && (!is_array($token) || ($token[2] !== $start_line))) {
+			$token = next($tokens);
+		}
+		while (($token !== false) && ($token[0] !== $token_id)) {
 			$token = next($tokens);
 		}
 		while (!in_array($token, ['{', false], true)) {
@@ -229,7 +245,6 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		}
 		if (parent::getInterfaceNames() === []) {
 			// could optimize to run it for T_EXTENDS | T_IMPLEMENTS too, but would be disordered
-			/** @phpstan-ignore-next-line Don't understand: list<class-string> accepts [] */
 			$this->cache['interface_names'][$filter] = [];
 			return [];
 		}
@@ -251,7 +266,6 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 				);
 			}
 		}
-		/** @phpstan-ignore-next-line Don't understand: list<class-string> accepts [] */
 		$this->cache['interface_names'][$filter] = $interface_names;
 		return $interface_names;
 	}
@@ -259,7 +273,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	//--------------------------------------------------------------------------------- getInterfaces
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return array<class-string,static>
+	 * @return array<class-string<object>,Reflection_Class<object>>
 	 */
 	public function getInterfaces(int $filter = self::T_EXTENDS | self::T_IMPLEMENTS)
 		: array
@@ -273,10 +287,13 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//------------------------------------------------------------------------------------- getMethod
-	/** @throws ReflectionException */
+	/**
+	 * @return Reflection_Method<Class>
+	 * @throws ReflectionException
+	 */
 	public function getMethod(string $name) : Reflection_Method
 	{
-		return new Reflection_Method($this->name, $name);
+		return static::newReflectionMethod($this->name, $name);
 	}
 
 	//------------------------------------------------------------------------------------ getMethods
@@ -286,8 +303,8 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * Methods visible for current class, not the privates ones from parents and traits are
 	 * retrieved but if you set T_EXTENDS and T_USE to get them.
 	 *
-	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getMethods()
-	 * @return array<string,Reflection_Method> key is the name of the method
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return array<string,Reflection_Method<Class>> key is the name of the method
 	 */
 	public function getMethods(?int $filter = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE)
 		: array
@@ -302,14 +319,14 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		$methods = [];
 		foreach (parent::getMethods($filter) as $native_method) {
 			/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
-			$methods[$native_method->name] = new Reflection_Method($this->name, $native_method->name);
+			$methods[$native_method->name] = static::newReflectionMethod($this->name, $native_method->name);
 		}
 		if ($methods === []) {
 			return $methods;
 		}
 		if (isset($filter) && (($filter & $any_inherit) < $any_inherit)) {
 			if (($filter & self::T_EXTENDS) === 0) {
-				$interfaces   = $this->getInterfaceNames(T_IMPLEMENTS);
+				$interfaces   = $this->getInterfaceNames(self::T_IMPLEMENTS);
 				$parent_class = $this->getParentClass();
 				if ($parent_class !== false) {
 					$parent_methods = $parent_class->getMethods(
@@ -318,7 +335,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 					foreach ($parent_methods as $method_name => $parent_method) {
 						$method = $methods[$method_name];
 						if (
-							($method->getDeclaringTraitName() === $parent_method->getDeclaringTraitName())
+							($method->getDeclaringClassName(true) === $parent_method->getDeclaringClassName(true))
 							&& !in_array($parent_method->getDeclaringClassName(), $interfaces, true)
 						) {
 							unset($methods[$method_name]);
@@ -335,7 +352,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			}
 			if (($filter & self::T_USE) === 0) {
 				foreach ($methods as $method_name => $method) {
-					if ($method->getDeclaringTrait()->isTrait()) {
+					if ($method->getDeclaringClass(true)->isTrait()) {
 						unset($methods[$method_name]);
 					}
 				}
@@ -410,7 +427,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	public function getParentClassName() : string
 	{
 		$parent_class = parent::getParentClass();
-		return ($parent_class === false) ? '' : $parent_class->name;
+		return ($parent_class === false)
+			? ''
+			: $parent_class->name;
 	}
 
 	//--------------------------------------------------------------------------------- getProperties
@@ -420,8 +439,8 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * Properties visible for current class, not the privates ones from parents and traits are
 	 * retrieved but if you set T_EXTENDS and T_USE to get them.
 	 *
-	 * @noinspection PhpDocMissingThrowsInspection $property from parent::getProperties()
-	 * @return array<string,Reflection_Property> key is the name of the property
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return array<string,Reflection_Property<Class>> key is the name of the property
 	 */
 	public function getProperties(?int $filter = self::T_EXTENDS | self::T_USE) : array
 	{
@@ -435,7 +454,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 		$properties = [];
 		foreach (parent::getProperties($filter) as $native_property) {
 			/** @noinspection PhpUnhandledExceptionInspection $property from parent::getProperties() */
-			$properties[$native_property->name] = new Reflection_Property($this->name, $native_property->name);
+			$properties[$native_property->name] = static::newReflectionProperty(
+				$this->name, $native_property->name
+			);
 		}
 		if ($properties === []) {
 			return $properties;
@@ -449,7 +470,9 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 					);
 					foreach ($parent_properties as $property_name => $parent_property) {
 						$property = $properties[$property_name];
-						if ($parent_property->getDeclaringTraitName() === $property->getDeclaringTraitName()) {
+						$parent_declaring_trait   = $parent_property->getDeclaringClassName(true);
+						$property_declaring_trait = $property->getDeclaringClassName(true);
+						if ($parent_declaring_trait === $property_declaring_trait) {
 							unset($properties[$property_name]);
 						}
 					}
@@ -457,7 +480,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 			}
 			if (($filter & self::T_USE) === 0) {
 				foreach ($properties as $property_name => $property) {
-					if ($property->getDeclaringTrait()->isTrait()) {
+					if ($property->getDeclaringClass(true)->isTrait()) {
 						unset($properties[$property_name]);
 					}
 				}
@@ -474,13 +497,12 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	 * classes or traits.
 	 *
 	 * @param string $name The 'name' of the property to get, or a 'property.path'
-	 * @return Reflection_Property
+	 * @return Reflection_Property<Class>
 	 * @throws ReflectionException
 	 */
-	#[ReturnTypeWillChange]
 	public function getProperty(string $name) : Reflection_Property
 	{
-		return new Reflection_Property($this->name, $name);
+		return static::newReflectionProperty($this->name, $name);
 	}
 
 	//------------------------------------------------------------------------------------- getTokens
@@ -529,7 +551,7 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	//------------------------------------------------------------------------------------- getTraits
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return array<class-string,static>
+	 * @return array<class-string,Reflection_Class<object>>
 	 */
 	public function getTraits(int $filter = self::T_LOCAL) : array
 	{
@@ -556,8 +578,8 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	/**
 	 * Returns true if the class has $name into its parents, interfaces or traits
 	 *
-	 * @param class-string $name
-	 * @param int $filter self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE
+	 * @param class-string           $name
+	 * @param int-mask-of<self::T_*> $filter
 	 */
 	public function isA(string $name, int $filter = self::T_INHERIT) : bool
 	{
@@ -604,10 +626,6 @@ class Reflection_Class extends ReflectionClass implements Interfaces\Reflection_
 	}
 
 	//-------------------------------------------------------------------------------------------- of
-	/**
-	 * @param class-string|object $object_or_class
-	 * @throws ReflectionException
-	 */
 	public static function of(object|string $object_or_class) : static
 	{
 		return new static($object_or_class);

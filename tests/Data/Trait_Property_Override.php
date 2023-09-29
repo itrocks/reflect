@@ -59,6 +59,7 @@ class More extends Limited
 
 	/**
 	 * B
+	 * @noinspection PhpUnusedPrivateFieldInspection
 	 * @phpstan-ignore-next-line For testing
 	 */
 	private mixed $private = 'default';

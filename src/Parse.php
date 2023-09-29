@@ -20,7 +20,9 @@ abstract class Parse
 			$token = next($tokens);
 			if ($token === false) return '';
 		} while ($token[0] !== T_STRING);
-		return ($namespace === '') ? $token[1] : ($namespace . '\\' . $token[1]);
+		return ($namespace === '')
+			? $token[1]
+			: ($namespace . '\\' . $token[1]);
 	}
 
 	//--------------------------------------------------------------------------------- namespaceName
@@ -34,7 +36,9 @@ abstract class Parse
 			$token = next($tokens);
 			if ($token === false) return '';
 		} while (!in_array($token[0], [T_NAME_QUALIFIED, T_STRING, '{', ';'], true));
-		return is_array($token) ? $token[1] : '';
+		return is_array($token)
+			? $token[1]
+			: '';
 	}
 
 	//---------------------------------------------------------------------------------- namespaceUse
@@ -72,7 +76,9 @@ abstract class Parse
 				case ',':
 				case ';':
 					if ($use !== '') {
-						$key = (($i = strrpos($use, '\\')) !== false) ? substr($use, $i + 1) : $use;
+						$key = (($i = strrpos($use, '\\')) !== false)
+							? substr($use, $i + 1)
+							: $use;
 						$namespace_use[$key] = $prefix . $use;
 					}
 					if ($token[0] === '}') {
