@@ -7,11 +7,6 @@
 	displayDetailsOnTestsThatTriggerNotices="true"
 	displayDetailsOnTestsThatTriggerWarnings="true"
 >
-	<coverage>
-		<report>
-			<html outputDirectory="coverage"/>
-		</report>
-	</coverage>
 	<source>
 		<include>
 			<directory>../src</directory>
