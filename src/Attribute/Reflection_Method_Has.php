@@ -9,28 +9,28 @@ trait Reflection_Method_Has
 {
 	use Reflection_Has;
 
-	//---------------------------------------------------------------------------- getOtherAttributes
+	//-------------------------------------------------------------------------------- moreAttributes
 	/**
-	 * @param ?class-string<A> $name
+	 * @param list<Reflection_Attribute<$this,A>>&                        $attributes
+	 * @param ?class-string<A>                                            $name
 	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
 	 * @phpstan-ignore-next-line not contravariant, but more precise rules
-	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
 	 * @template A of object
 	 */
-	protected function getOtherAttributes(?string $name, int $flags, bool $is_repeatable) : array
+	protected function moreAttributes(
+		array &$attributes, ?string $name, int $flags, bool $is_repeatable
+	) : void
 	{
 		$parent = $this->getParent();
 		if (is_null($parent) || $parent->isPrivate()) {
-			return [];
+			return;
 		}
-		$attributes = [];
-		$final      = new ReflectionProperty(Reflection_Attribute::class, 'final');
-		$parents    = $parent->getAttributes($name, $flags);
+		$final   = new ReflectionProperty(Reflection_Attribute::class, 'final');
+		$parents = $parent->getAttributes($name, $flags);
 		foreach ($parents as $attribute) {
 			$final->setValue($attribute, $this);
 			$attributes[] = $attribute;
 		}
-		return $attributes;
 	}
 
 }

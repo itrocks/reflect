@@ -35,7 +35,7 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 		if ($optional) {
 			/** @noinspection PhpUnhandledExceptionInspection isOptional */
 			$default = $this->getDefaultValueConstantName();
-			if (!isset($default)) {
+			if (is_null($default)) {
 				/** @noinspection PhpUnhandledExceptionInspection isOptional */
 				$default = $this->getDefaultValue();
 				if (is_string($default)) {

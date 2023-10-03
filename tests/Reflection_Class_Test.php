@@ -36,6 +36,34 @@ use ReflectionException;
 class Reflection_Class_Test extends TestCase
 {
 
+	//-------------------------------------------------------------------- getUndefinedClassComponent
+	/**
+	 * @param ReflectionClass<C>  $native_class
+	 * @param Reflection_Class<C> $reflection_class
+	 * @template C of object
+	 */
+	public function getUndefinedClassComponent(
+		ReflectionClass $native_class, Reflection_Class $reflection_class,
+		string $get_class_component_method, string $class_component_name
+	) : void
+	{
+		try {
+			/** @phpstan-ignore-next-line Parameter #1 $callback of function call_user_func expects callable */
+			call_user_func([$native_class, $get_class_component_method], $class_component_name);
+			$code    = 0;
+			$message = '';
+		}
+		catch (ReflectionException $exception) {
+			$code    = $exception->getCode();
+			$message = $exception->getMessage();
+		}
+		$this->expectException(ReflectionException::class);
+		$this->expectExceptionCode($code);
+		$this->expectExceptionMessage($message);
+		/** @phpstan-ignore-next-line Parameter #1 $callback of function call_user_func expects callable */
+		call_user_func([$reflection_class, $get_class_component_method], $class_component_name);
+	}
+
 	//------------------------------------------------------------------------------- testConstructor
 	public function testConstructor() : void
 	{
@@ -226,24 +254,14 @@ class Reflection_Class_Test extends TestCase
 			get_object_vars($native_class->getMethod('publicClassMethod')),
 			get_object_vars($reflection_class->getMethod('publicClassMethod'))
 		);
-		try {
-			/** @noinspection PhpExpressionResultUnusedInspection For exception testing purpose */
-			$native_class->getMethod('doesNotExist');
-			$code    = 0;
-			$message = '';
-		}
-		catch (ReflectionException $exception) {
-			$code    = $exception->getCode();
-			$message = $exception->getMessage();
-		}
-		$this->expectException(ReflectionException::class);
-		$this->expectExceptionCode($code);
-		$this->expectExceptionMessage($message);
-		$reflection_class->getMethod('doesNotExist');
+		$this->getUndefinedClassComponent(
+			$native_class, $reflection_class, 'getMethod', 'doesNotExist'
+		);
 	}
 
 	//-------------------------------------------------------------------------------- testGetMethods
 	/**
+	 * @noinspection DuplicatedCode Same results, but not same input
 	 * @noinspection PhpDocMissingThrowsInspection
 	 * @param class-string                                               $class_name
 	 * @param ?int-mask-of<Reflection::T_*>                              $filter
@@ -455,7 +473,8 @@ class Reflection_Class_Test extends TestCase
 
 	//----------------------------------------------------------------------------- testGetProperties
 	/**
-	 * @param class-string                                               $class_name
+	 * @noinspection DuplicatedCode Same results, but not same input
+	 * @param class-string $class_name
 	 * @param ?int-mask-of<Reflection::T_*>                              $filter
 	 * @param list<array{class-string,string,class-string,class-string}> $expected
 	 * @throws ReflectionException
@@ -540,12 +559,12 @@ class Reflection_Class_Test extends TestCase
 		: void
 	{
 		$actual = [];
-		foreach ((new Reflection_Class($class_name))->getProperties($filter) as $method) {
+		foreach ((new Reflection_Class($class_name))->getProperties($filter) as $property) {
 			$actual[] = join(' :: ', [
-				$method->getDeclaringClassName(),
-				$method->getName(),
-				$method->getFinalClassName(),
-				$method->getDeclaringClassName(true)
+				$property->getDeclaringClassName(),
+				$property->getName(),
+				$property->getFinalClassName(),
+				$property->getDeclaringClassName(true)
 			]);
 		}
 		foreach ($expected as &$line) {
@@ -567,20 +586,9 @@ class Reflection_Class_Test extends TestCase
 			),
 			get_object_vars($reflection_class->getProperty('public_class_property'))
 		);
-		try {
-			/** @noinspection PhpExpressionResultUnusedInspection For exception testing purpose */
-			$native_class->getProperty('does_not_exist');
-			$code    = 0;
-			$message = '';
-		}
-		catch (ReflectionException $exception) {
-			$code    = $exception->getCode();
-			$message = $exception->getMessage();
-		}
-		$this->expectException(ReflectionException::class);
-		$this->expectExceptionCode($code);
-		$this->expectExceptionMessage($message);
-		$reflection_class->getProperty('does_not_exist');
+		$this->getUndefinedClassComponent(
+			$native_class, $reflection_class, 'getProperty', 'does_not_exist'
+		);
 	}
 
 	//--------------------------------------------------------------------------------- testGetTokens

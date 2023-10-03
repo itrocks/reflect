@@ -10,7 +10,7 @@ use ITRocks\Reflect\Tests\Attribute\Data\CII;
 use ITRocks\Reflect\Tests\Attribute\Data\Foo;
 use ITRocks\Reflect\Tests\Attribute\Data\Has_Default_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\Inheritable_Class;
-use ITRocks\Reflect\Tests\Attribute\Data\Inheritable_Repeatable_Class;
+use ITRocks\Reflect\Tests\Attribute\Data\Inheritable_Repeatable;
 use ITRocks\Reflect\Tests\Attribute\Data\P;
 use ITRocks\Reflect\Tests\Attribute\Data\Repeatable_Class;
 use ITRocks\Reflect\Tests\Attribute\Data\Simple_Class;
@@ -160,15 +160,15 @@ class Reflection_Attribute_Test extends TestCase
 	//-------------------------------------------------------------------------------- testIsRepeated
 	public function testIsRepeated() : void
 	{
-		$alone   = (new Reflection_Class(CII::class))->getAttribute(Inheritable_Repeatable_Class::class);
-		$inherit = (new Reflection_Class(P::class))->getAttribute(Inheritable_Repeatable_Class::class);
-		$locally = (new Reflection_Class(C::class))->getAttribute(Inheritable_Repeatable_Class::class);
+		$alone   = (new Reflection_Class(CII::class))->getAttribute(Inheritable_Repeatable::class);
+		$inherit = (new Reflection_Class(P::class))->getAttribute(Inheritable_Repeatable::class);
+		$locally = (new Reflection_Class(C::class))->getAttribute(Inheritable_Repeatable::class);
 		self::assertInstanceOf(Reflection_Attribute::class, $alone);
 		self::assertInstanceOf(Reflection_Attribute::class, $inherit);
 		self::assertInstanceOf(Reflection_Attribute::class, $locally);
-		self::assertFalse($alone->isRepeated());
-		self::assertTrue($inherit->isRepeated());
-		self::assertTrue($locally->isRepeated());
+		self::assertFalse($alone->isRepeated(), 'alone');
+		self::assertTrue($inherit->isRepeated(), 'inherit');
+		self::assertTrue($locally->isRepeated(), 'locally');
 	}
 
 	//------------------------------------------------------------------------------- testNewInstance

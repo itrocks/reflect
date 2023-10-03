@@ -22,6 +22,12 @@ use ReflectionProperty;
 class Reflection_Property_Test extends TestCase
 {
 
+	//------------------------------------------------------------------------------ setUpBeforeClass
+	public static function setUpBeforeClass() : void
+	{
+		class_exists(Trait_Property_Override::class);
+	}
+
 	//------------------------------------------------------------------------------- testConstructor
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
@@ -156,7 +162,6 @@ class Reflection_Property_Test extends TestCase
 	#[TestWith([49, MC::class, 'public_parent_trait_property',            Reflection::T_USE, "/** MPT:parent_trait_property */"])]
 	public function testGetDocComment(int $key, string $class, string $name, int $filter, string $expected) : void
 	{
-		require_once __DIR__ . '/Data/Trait_Property_Override.php';
 		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection = new Reflection_Property($class, $name);
 		$actual     = $reflection->getDocComment($filter, false);
@@ -189,14 +194,13 @@ class Reflection_Property_Test extends TestCase
 	#[TestWith([16, More::class, 'private', Reflection::T_INHERIT, "/** FROM " . More::class . " */\n/**\n\t * B\n\t * @noinspection PhpUnusedPrivateFieldInspection\n\t * @phpstan-ignore-next-line For testing\n\t */"])]
 	public function testGetDocCommentLocate(int $key, string $class, string $name, int $filter, string $expected) : void
 	{
-		require_once __DIR__ . '/Data/Trait_Property_Override.php';
 		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
-		$reflection = new Reflection_Property($class, $name);
-		$actual     = $reflection->getDocComment($filter, false, true);
+		$property = new Reflection_Property($class, $name);
+		$actual   = $property->getDocComment($filter, false, true);
 		self::assertEquals($expected, $actual, "data set #$key");
-		$actual = $reflection->getDocComment($filter, true, true);
+		$actual = $property->getDocComment($filter, true, true);
 		self::assertEquals($expected, $actual, "data set #$key cache write");
-		$actual = $reflection->getDocComment($filter, true, true);
+		$actual = $property->getDocComment($filter, true, true);
 		self::assertEquals($expected, $actual, "data set #$key cache read");
 	}
 
@@ -225,20 +229,19 @@ class Reflection_Property_Test extends TestCase
 	 * @param array{class-string,string}                     $property
 	 * @param ?array{class-string,class-string,class-string} $expected
 	 */
-	#[TestWith([0, [MC::class, 'public_class_property'],                   null])]
-	#[TestWith([1, [MC::class, 'public_parent_property'],                  null])]
-	#[TestWith([2, [MC::class, 'public_parent_trait_property'],            null])]
-	#[TestWith([3, [MC::class, 'public_trait_property'],                   null])]
-	#[TestWith([4, [new F,     'public_trait_property'],                   null])]
-	#[TestWith([5, [MC::class, 'public_trait_overridden_property'],        null])]
-	#[TestWith([6, [MC::class, 'public_parent_overridden_property'],       [MP::class, MP::class, MP::class]])]
-	#[TestWith([7, [MC::class, 'public_parent_trait_overridden_property'], [MP::class, MP::class, MPT::class]])]
-	#[TestWith([8, [MC::class, 'private_class_property'],                  null])]
-	#[TestWith([9, [More::class, 'private'],                               null])]
-	#[TestWith([9, [More::class, 'private2'],                              null])]
+	#[TestWith([0,  [MC::class, 'public_class_property'],                   null])]
+	#[TestWith([1,  [MC::class, 'public_parent_property'],                  null])]
+	#[TestWith([2,  [MC::class, 'public_parent_trait_property'],            null])]
+	#[TestWith([3,  [MC::class, 'public_trait_property'],                   null])]
+	#[TestWith([4,  [new F,     'public_trait_property'],                   null])]
+	#[TestWith([5,  [MC::class, 'public_trait_overridden_property'],        null])]
+	#[TestWith([6,  [MC::class, 'public_parent_overridden_property'],       [MP::class, MP::class, MP::class]])]
+	#[TestWith([7,  [MC::class, 'public_parent_trait_overridden_property'], [MP::class, MP::class, MPT::class]])]
+	#[TestWith([8,  [MC::class, 'private_class_property'],                  null])]
+	#[TestWith([9,  [More::class, 'private'],                               null])]
+	#[TestWith([10, [More::class, 'private2'],                              null])]
 	public function testGetParent(int $key, array $property, ?array $expected) : void
 	{
-		require_once __DIR__ . '/Data/Trait_Property_Override.php';
 		/** @noinspection PhpUnhandledExceptionInspection Valid callable */
 		$reflection = new Reflection_Property($property[0], $property[1]);
 		$parent     = $reflection->getParent();

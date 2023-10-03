@@ -2,6 +2,7 @@
 namespace ITRocks\Reflect\Attribute;
 
 use Attribute;
+use ITRocks\Reflect\Interface\Reflection_Class_Component;
 use ITRocks\Reflect\Reflection_Attribute;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -68,16 +69,31 @@ trait Reflection_Has
 		if (($flags & self::T_ALL) > 0) {
 			$is_inheritable = is_null($name) || $this->isAttributeInheritable($name);
 			$is_repeatable  = is_null($name) || $this->isAttributeRepeatable($name);
-			$known_repeated = isset($name) && isset($parents[1]);
-			if ($is_inheritable && (($attributes === []) || $is_repeatable)) {
-				$attributes = array_merge(
-					$attributes,
-					$this->getOtherAttributes($name, $flags, $is_repeatable)
-				);
+			$known_repeated = isset($name) && isset($attributes[1]);
+			if (
+				$is_inheritable
+				&& (
+					$is_repeatable
+					|| ($attributes === [])
+					|| (($flags & Reflection_Class_Component::T_OVERRIDE) > 0) /** @phpstan-ignore-line */
+				)
+			) {
+				$this->moreAttributes($attributes, $name, $flags, $is_repeatable);
+				/** @var list<Reflection_Attribute<$this,object>> $attributes */
+				if (!$known_repeated && isset($attributes[1])) {
+					$repeated_by_name = [];
+					foreach ($attributes as $attribute) {
+						$attribute_name = $attribute->getName();
+						$repeated_by_name[$attribute_name] = ($repeated_by_name[$attribute_name] ?? 0) + 1;
+					}
+					$is_repeated = new ReflectionProperty(Reflection_Attribute::class, 'is_repeated');
+					foreach ($attributes as $attribute) {
+						if ($repeated_by_name[$attribute->getName()] > 1) {
+							$is_repeated->setValue($attribute, true);
+						}
+					}
+				}
 			}
-		}
-		else {
-			$known_repeated = true;
 		}
 		if (isset($name) && ($attributes === []) && class_exists($name)) {
 			$has_default = Reflection_Attribute::getDefault($name);
@@ -88,33 +104,9 @@ trait Reflection_Has
 				$attributes[] = $attribute;
 			}
 		}
-		if (!$known_repeated && isset($attributes[1])) {
-			$repeated_by_name = [];
-			foreach ($attributes as $attribute) {
-				$attribute_name = $attribute->getName();
-				$repeated_by_name[$attribute_name] = ($repeated_by_name[$attribute_name] ?? 0) + 1;
-			}
-			$is_repeated = new ReflectionProperty(Reflection_Attribute::class, 'is_repeated');
-			foreach ($attributes as $attribute) {
-				if (($repeated_by_name[$attribute->getName()] ?? 0) > 1) {
-					$is_repeated->setValue($attribute, true);
-				}
-			}
-		}
 		$cache[$cache_key][strval($name)][$flags] = $attributes;
 		return $attributes;
 	}
-
-	//---------------------------------------------------------------------------- getOtherAttributes
-	/**
-	 * @param ?class-string<A> $name
-	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
-	 * @phpstan-ignore-next-line not contravariant, but more precise rules
-	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
-	 * @template A of object
-	 */
-	protected abstract function getOtherAttributes(?string $name, int $flags, bool $is_repeatable)
-		: array;
 
 	//------------------------------------------------------------------------ isAttributeInheritable
 	public function isAttributeInheritable(string $name) : bool
@@ -133,5 +125,16 @@ trait Reflection_Has
 				&& (($flags & Attribute::IS_REPEATABLE) > 0)
 			);
 	}
+
+	//-------------------------------------------------------------------------------- moreAttributes
+	/**
+	 * @param list<Reflection_Attribute<$this,A>>&                        $attributes
+	 * @param ?class-string<A>                                            $name
+	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
+	 * @template A of object
+	 */
+	protected abstract function moreAttributes(
+		array &$attributes, ?string $name, int $flags, bool $is_repeatable
+	) : void;
 
 }
