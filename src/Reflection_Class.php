@@ -125,43 +125,6 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		return $constructor;
 	}
 
-	//--------------------------------------------------------------------- getDeclaredInterfaceNames
-	/**
-	 * Parse extends / implements clause content for a class or interface.
-	 * Not to be called for a class/interface/trait with no extends nor implements clause!
-	 *
-	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return list<class-string>
-	 */
-	protected function getDeclaredInterfaceNames() : array
-	{
-		$implements    = [];
-		$namespace     = $this->getNamespaceName();
-		$namespace_use = $this->getNamespaceUse();
-		$start_line    = $this->getStartLine();
-		$tokens        = $this->getTokens();
-		$token         = reset($tokens);
-		$token_id      = $this->isInterface()
-			? T_EXTENDS
-			: T_IMPLEMENTS;
-		while (($token !== false) && (!is_array($token) || ($token[2] !== $start_line))) {
-			$token = next($tokens);
-		}
-		while (($token !== false) && ($token[0] !== $token_id)) {
-			$token = next($tokens);
-		}
-		while (!in_array($token, ['{', false], true)) {
-			if (in_array(
-				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
-			)) {
-				/** @noinspection PhpUnhandledExceptionInspection Valid $token */
-				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
-			}
-			$token = next($tokens);
-		}
-		return $implements;
-	}
-
 	//--------------------------------------------------------------------------------- getDocComment
 	/**
 	 * Accumulates documentations of parents and the class itself
@@ -232,6 +195,58 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		return $doc_comment;
 	}
 
+	//------------------------------------------------------------------------------------ getExtends
+	/** @return list<class-string> */
+	public function getExtends() : array
+	{
+		if ($this->isInterface()) {
+			return $this->getImplements();
+		}
+		$extends = $this->getParentClassName();
+		if ($extends === '') {
+			return [];
+		}
+		/** @var class-string $extends */
+		return [$extends];
+	}
+
+	//--------------------------------------------------------------------------------- getImplements
+	/**
+	 * Parse extends / implements clause content for a class or interface.
+	 * Not to be called for a class/interface/trait with no extends nor implements clause!
+	 *
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @return list<class-string>
+	 */
+	public function getImplements() : array
+	{
+		$implements    = [];
+		$namespace     = $this->getNamespaceName();
+		$namespace_use = $this->getNamespaceUses();
+		$start_line    = $this->getStartLine();
+		$tokens        = $this->getTokens();
+		$token         = reset($tokens);
+		$token_id      = $this->isInterface()
+			? T_EXTENDS
+			: T_IMPLEMENTS;
+		while (($token !== false) && (!is_array($token) || ($token[2] !== $start_line))) {
+			$token = next($tokens);
+		}
+		while (($token !== false) && ($token[0] !== $token_id)) {
+			$token = next($tokens);
+		}
+		while (!in_array($token, ['{', false], true)) {
+			if (in_array(
+				$token[0], [T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE, T_STRING], true
+			)) {
+				/** @noinspection PhpUnhandledExceptionInspection Valid $token */
+				$implements[] = Parse::referenceClassName($token, $namespace_use, $namespace);
+			}
+			$token = next($tokens);
+		}
+		return $implements;
+	}
+
 	//----------------------------------------------------------------------------- getInterfaceNames
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
@@ -248,7 +263,7 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 			$this->cache['interface_names'][$filter] = [];
 			return [];
 		}
-		$interface_names = $this->getDeclaredInterfaceNames();
+		$interface_names = $this->getImplements();
 		if (($filter & self::T_IMPLEMENTS) > 0) {
 			foreach ($interface_names as $interface_name) {
 				/** @noinspection PhpUnhandledExceptionInspection Valid getImplementNames result */
@@ -363,9 +378,9 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		return $methods;
 	}
 
-	//------------------------------------------------------------------------------- getNamespaceUse
+	//------------------------------------------------------------------------------ getNamespaceUses
 	/** @return array<string,string> array<string $alias, string $use>*/
-	public function getNamespaceUse() : array
+	public function getNamespaceUses() : array
 	{
 		if (key_exists('namespace_use', $this->cache)) {
 			return $this->cache['namespace_use'];

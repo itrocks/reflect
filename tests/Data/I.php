@@ -2,7 +2,7 @@
 namespace ITRocks\Reflect\Tests\Data;
 
 /** I:DC */
-interface I extends II
+interface I extends II, IIB
 {
 
 	//------------------------------------------------------------------------- publicInterfaceMethod

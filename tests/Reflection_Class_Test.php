@@ -10,6 +10,7 @@ use ITRocks\Reflect\Tests\Data\A;
 use ITRocks\Reflect\Tests\Data\C;
 use ITRocks\Reflect\Tests\Data\I;
 use ITRocks\Reflect\Tests\Data\II;
+use ITRocks\Reflect\Tests\Data\IIB;
 use ITRocks\Reflect\Tests\Data\MC;
 use ITRocks\Reflect\Tests\Data\MI;
 use ITRocks\Reflect\Tests\Data\MII;
@@ -89,12 +90,12 @@ class Reflection_Class_Test extends TestCase
 	 */
 	#[TestWith([0, Reflection::T_LOCAL, [C::class]])]
 	#[TestWith([1, Reflection::T_EXTENDS, [C::class, P::class, R::class]])]
-	#[TestWith([2, Reflection::T_IMPLEMENTS, [C::class, I::class, II::class]])]
+	#[TestWith([2, Reflection::T_IMPLEMENTS, [C::class, I::class, II::class, IIB::class]])]
 	#[TestWith([3, Reflection::T_USE, [C::class, T::class, TO::class, TT::class]])]
-	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class, I::class, II::class, P::class, PI::class, R::class]])]
+	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class, I::class, II::class, IIB::class, P::class, PI::class, R::class]])]
 	#[TestWith([5, Reflection::T_EXTENDS | Reflection::T_USE, [C::class, T::class, TO::class, TT::class, P::class, PT::class, R::class]])]
-	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE, [C::class, T::class, TO::class, TT::class, I::class, II::class]])]
-	#[TestWith([7, Reflection::T_INHERIT, [C::class, T::class, TO::class, TT::class, I::class, II::class, P::class, PT::class, PI::class, R::class]])]
+	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE, [C::class, T::class, TO::class, TT::class, I::class, II::class, IIB::class]])]
+	#[TestWith([7, Reflection::T_INHERIT, [C::class, T::class, TO::class, TT::class, I::class, II::class, IIB::class, P::class, PT::class, PI::class, R::class]])]
 	public function testGetClassListAndNames(int $key, int $filter, array $expected) : void
 	{
 		$class = new Reflection_Class(C::class);
@@ -112,12 +113,12 @@ class Reflection_Class_Test extends TestCase
 	 */
 	#[TestWith([0, Reflection::T_LOCAL,                              [C::class => []]])]
 	#[TestWith([1, Reflection::T_EXTENDS,                            [C::class => [P::class => [R::class => []]]]])]
-	#[TestWith([2, Reflection::T_IMPLEMENTS,                         [C::class => [I::class => [II::class => []]]]])]
+	#[TestWith([2, Reflection::T_IMPLEMENTS,                         [C::class => [I::class => [II::class => [], IIB::class => []]]]])]
 	#[TestWith([3, Reflection::T_USE,                                [C::class => [T::class => [TT::class => []], TO::class => []]]])]
-	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class => [I::class => [II::class => []], P::class => [PI::class => [], I::class => [II::class => []], R::class => []]]]])]
+	#[TestWith([4, Reflection::T_EXTENDS | Reflection::T_IMPLEMENTS, [C::class => [I::class => [II::class => [], IIB::class => []], P::class => [PI::class => [], I::class => [II::class => [], IIB::class => []], R::class => []]]]])]
 	#[TestWith([5, Reflection::T_EXTENDS | Reflection::T_USE,        [C::class => [T::class => [TT::class => []], P::class => [PT::class => [TO::class => []], R::class => []], TO::class => []]]])]
-	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE,     [C::class => [T::class => [TT::class => []], I::class => [II::class => []], TO::class => []]]])]
-	#[TestWith([7, Reflection::T_INHERIT,                            [C::class => [T::class => [TT::class => []], I::class => [II::class => []], P::class => [PT::class => [TO::class => []], PI::class => [], I::class => [II::class => []], R::class => []], TO::class => []]]])]
+	#[TestWith([6, Reflection::T_IMPLEMENTS | Reflection::T_USE,     [C::class => [T::class => [TT::class => []], I::class => [II::class => [], IIB::class => []], TO::class => []]]])]
+	#[TestWith([7, Reflection::T_INHERIT,                            [C::class => [T::class => [TT::class => []], I::class => [II::class => [], IIB::class => []], P::class => [PT::class => [TO::class => []], PI::class => [], I::class => [II::class => [], IIB::class => []], R::class => []], TO::class => []]]])]
 	public function testGetClassTree(int $key, int $filter, array $expected) : void
 	{
 		$class = new Reflection_Class(C::class);
@@ -202,7 +203,7 @@ class Reflection_Class_Test extends TestCase
 		int $key, string $class_name, int $filter, string $expected
 	) : void
 	{
-		/** @noinspection PhpUnhandledExceptionInspection Always valid */
+		/** @noinspection PhpUnhandledExceptionInspection class-string */
 		$reflection_class = new Reflection_Class($class_name);
 		self::assertEquals(
 			$expected, $reflection_class->getDocComment($filter, false, true), "data set #$key"
@@ -215,6 +216,22 @@ class Reflection_Class_Test extends TestCase
 		);
 	}
 
+	//-------------------------------------------------------------------------------- testGetExtends
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 * @param list<class-string> $expected
+	 */
+	#[TestWith([0, C::class, [P::class]])]
+	#[TestWith([1, R::class, []])]
+	#[TestWith([2, I::class, [II::class, IIB::class]])]
+	public function testGetExtends(int $key, string $class_name, array $expected) : void
+	{
+		/** @noinspection PhpUnhandledExceptionInspection class-string */
+		$reflection_class = new Reflection_Class($class_name);
+		self::assertEquals($expected, $reflection_class->getExtends(), "data set #$key");
+	}
+
 	//------------------------------------------------------------------------- testGetInterfaceNames
 	/**
 	 * @noinspection PhpDocMissingThrowsInspection
@@ -223,13 +240,13 @@ class Reflection_Class_Test extends TestCase
 	 * @param list<class-string>           $expected
 	 */
 	#[TestWith([0, C::class, Reflection::T_LOCAL, [I::class]])]
-	#[TestWith([1, C::class, Reflection::T_IMPLEMENTS, [I::class, II::class]])]
+	#[TestWith([1, C::class, Reflection::T_IMPLEMENTS, [I::class, II::class, IIB::class]])]
 	#[TestWith([2, C::class, Reflection::T_EXTENDS, [I::class, PI::class]])]
-	#[TestWith([3, C::class, Reflection::T_INHERIT, [I::class, II::class, PI::class]])]
+	#[TestWith([3, C::class, Reflection::T_INHERIT, [I::class, II::class, IIB::class, PI::class]])]
 	public function testGetInterfaceNames(int $key, string $class_name, int $filter, array $expected)
 		: void
 	{
-		/** @noinspection PhpUnhandledExceptionInspection Always valid */
+		/** @noinspection PhpUnhandledExceptionInspection class-string */
 		$reflection_class = new Reflection_Class($class_name);
 		self::assertEquals($expected, $reflection_class->getInterfaceNames($filter), "data set #$key");
 	}
@@ -241,7 +258,7 @@ class Reflection_Class_Test extends TestCase
 			function(Reflection_Class $interface) { return $interface->name; },
 			(new Reflection_Class(C::class))->getInterfaces()
 		);
-		$expected = [I::class, II::class, PI::class];
+		$expected = [I::class, II::class, IIB::class, PI::class];
 		self::assertEquals(array_combine($expected, $expected), $actual);
 	}
 
@@ -414,8 +431,27 @@ class Reflection_Class_Test extends TestCase
 		self::assertEquals($expected, $actual, "Data set #$key");
 	}
 
-	//--------------------------------------------------------------------------- testGetNamespaceUse
-	public function testGetNamespaceUse() : void
+	//------------------------------------------------------------------ testGetMultipleNamespaceUses
+	/**
+	 * @noinspection PhpDocMissingThrowsInspection
+	 * @param class-string $class_name
+	 */
+	#[TestWith([CA::class, 'NS\B'])]
+	#[TestWith([CB::class, 'NS\C'])]
+	#[TestWith([CC::class, 'NS\D'])]
+	#[TestWith([CD::class, 'NS\E'])]
+	public function testGetMultipleNamespaceUses(string $class_name, string $expected) : void
+	{
+		require_once __DIR__ . '/Data/Namespace_Use_Multiple.php';
+		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
+		$class    = new Reflection_Class($class_name);
+		$expected = [substr($expected, intval(strrpos($expected, '\\')) + 1) => $expected];
+		self::assertEquals($expected, $class->getNamespaceUses(), $class_name);
+		self::assertEquals($expected, $class->getNamespaceUses(), $class_name . ' cached');
+	}
+
+	//-------------------------------------------------------------------------- testGetNamespaceUses
+	public function testGetNamespaceUses() : void
 	{
 		$class    = new Reflection_Class(Namespace_Use::class);
 		$expected = [
@@ -425,29 +461,10 @@ class Reflection_Class_Test extends TestCase
 			'T1'               => Parse_Test::class,
 			'Types'            => Types::class
 		];
-		$actual = $class->getNamespaceUse();
+		$actual = $class->getNamespaceUses();
 		self::assertEquals($expected, $actual);
-		$actual = $class->getNamespaceUse();
+		$actual = $class->getNamespaceUses();
 		self::assertEquals($expected, $actual, 'cached');
-	}
-
-	//------------------------------------------------------------------- testGetNamespaceUseMultiple
-	/**
-	 * @noinspection PhpDocMissingThrowsInspection
-	 * @param class-string $class_name
-	 */
-	#[TestWith([CA::class, 'NS\B'])]
-	#[TestWith([CB::class, 'NS\C'])]
-	#[TestWith([CC::class, 'NS\D'])]
-	#[TestWith([CD::class, 'NS\E'])]
-	public function testGetNamespaceUseMultiple(string $class_name, string $expected) : void
-	{
-		require_once __DIR__ . '/Data/Namespace_Use_Multiple.php';
-		/** @noinspection PhpUnhandledExceptionInspection Valid class name */
-		$class    = new Reflection_Class($class_name);
-		$expected = [substr($expected, intval(strrpos($expected, '\\')) + 1) => $expected];
-		self::assertEquals($expected, $class->getNamespaceUse(), $class_name);
-		self::assertEquals($expected, $class->getNamespaceUse(), $class_name . ' cached');
 	}
 
 	//--------------------------------------------------------------------- testGetParentClassAndName
