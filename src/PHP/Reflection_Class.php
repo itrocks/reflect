@@ -3,6 +3,7 @@ namespace ITRocks\Reflect\PHP;
 
 use ITRocks\Reflect\Interface;
 use ITRocks\Reflect\Interface\Reflection_Attribute;
+use ITRocks\Reflect\Interface\Reflection_Class_Constant;
 use ITRocks\Reflect\Interface\Reflection_Method;
 use ITRocks\Reflect\Interface\Reflection_Parameter;
 use ITRocks\Reflect\Interface\Reflection_Property;
@@ -35,14 +36,14 @@ class Reflection_Class implements Interface\Reflection_Class
 	}
 
 	//------------------------------------------------------------------------- getAttributeInstances
-	public function getAttributeInstances(string $name = null, int $flags = 0) : array
+	public function getAttributeInstances(string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		// TODO: Implement getAttributeInstances() method.
 		return [];
 	}
 
 	//--------------------------------------------------------------------------------- getAttributes
-	public function getAttributes(string $name = null, int $flags = 0) : array
+	public function getAttributes(string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		// TODO: Implement getAttributes() method.
 		return [];
@@ -148,6 +149,21 @@ class Reflection_Class implements Interface\Reflection_Class
 	{
 		// TODO: Implement getProperty() method.
 		throw new ReflectionException('TODO: Implement getProperty() method.');
+	}
+
+	//------------------------------------------------------------------------- getReflectionConstant
+	public function getReflectionConstant(string $name) : Reflection_Class_Constant
+	{
+		// TODO: Implement getReflectionConstant() method.
+		throw new ReflectionException('TODO: Implement getReflectionConstant() method.');
+	}
+
+	//------------------------------------------------------------------------ getReflectionConstants
+	public function getReflectionConstants(?int $filter = Interface\Reflection_Class::T_INHERIT)
+		: array
+	{
+		// TODO: Implement getReflectionConstants() method.
+		return [];
 	}
 
 	//--------------------------------------------------------------------------------- getTraitNames

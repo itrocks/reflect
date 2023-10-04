@@ -14,6 +14,7 @@ use ReturnTypeWillChange;
  */
 class Reflection_Parameter extends ReflectionParameter implements Interface\Reflection_Parameter
 {
+	use Attribute\Reflection_Parameter_Has;
 	use Instantiates;
 
 	//----------------------------------------------------------------------------------- __construct
@@ -71,7 +72,7 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 	 * @template A of object
 	 * @throws ReflectionException
 	 */
-	public function getAttributeInstances(string $name = null, int $flags = 0) : array
+	public function getAttributeInstances(string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		$instances = [];
 		foreach ($this->getAttributes($name, $flags) as $attribute) {
@@ -89,7 +90,7 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
 	 * @template A of object
 	 */
-	public function getAttributes(?string $name = null, int $flags = 0) : array
+	public function getAttributes(?string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		$attributes = [];
 		$parents    = parent::getAttributes($name, $flags & ReflectionAttribute::IS_INSTANCEOF);

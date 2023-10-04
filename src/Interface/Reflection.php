@@ -34,7 +34,7 @@ interface Reflection
 	 * @template A of object
 	 * @throws ReflectionException
 	 */
-	public function getAttributeInstances(string $name = null, int $flags = 0) : array;
+	public function getAttributeInstances(string $name = null, int $flags = self::T_LOCAL) : array;
 
 	//--------------------------------------------------------------------------------- getAttributes
 	/**
@@ -43,7 +43,7 @@ interface Reflection
 	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
 	 * @template A of object
 	 */
-	public function getAttributes(string $name = null, int $flags = 0) : array;
+	public function getAttributes(string $name = null, int $flags = self::T_LOCAL) : array;
 
 	//--------------------------------------------------------------------------------- getDocComment
 	/** @param int-mask-of<self::T_*> $filter */

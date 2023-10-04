@@ -5,8 +5,6 @@ use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
 /**
- * An interface for all reflection method classes
- *
  * @extends Reflection_Class_Component<Class>
  * @template Class of object
  */

@@ -319,7 +319,9 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		$methods = [];
 		foreach (parent::getMethods($filter) as $native_method) {
 			/** @noinspection PhpUnhandledExceptionInspection $method from parent::getMethods() */
-			$methods[$native_method->name] = static::newReflectionMethod($this->name, $native_method->name);
+			$methods[$native_method->name] = static::newReflectionMethod(
+				$this->name, $native_method->name
+			);
 		}
 		if ($methods === []) {
 			return $methods;
@@ -434,13 +436,8 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 
 	//--------------------------------------------------------------------------------- getProperties
 	/**
-	 * Gets an array of properties for the class
-	 *
-	 * Properties visible for current class, not the privates ones from parents and traits are
-	 * retrieved but if you set T_EXTENDS and T_USE to get them.
-	 *
 	 * @noinspection PhpDocMissingThrowsInspection
-	 * @return array<string,Reflection_Property<Class>> key is the name of the property
+	 * @return array<string,Reflection_Property<Class>>
 	 */
 	public function getProperties(?int $filter = self::T_EXTENDS | self::T_USE) : array
 	{
@@ -503,6 +500,25 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 	public function getProperty(string $name) : Reflection_Property
 	{
 		return static::newReflectionProperty($this->name, $name);
+	}
+
+	//------------------------------------------------------------------------- getReflectionConstant
+	/** @return Reflection_Class_Constant<Class> */
+	public function getReflectionConstant(string $name) : Reflection_Class_Constant
+	{
+		return static::newReflectionConstant($this->name, $name);
+	}
+
+	//------------------------------------------------------------------------ getReflectionConstants
+	/** @return array<string,Reflection_Class_Constant<Class>> */
+	public function getReflectionConstants(int $filter = null) : array
+	{
+		$constants = [];
+		foreach (parent::getReflectionConstants($filter) as $constant) {
+			$constants[$constant->name] = static::newReflectionConstant($this->name, $constant);
+		}
+		// TODO More filters
+		return $constants;
 	}
 
 	//------------------------------------------------------------------------------------- getTokens
@@ -586,7 +602,7 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		if ($this->name === $name) {
 			return true;
 		}
-		if ($filter === 0) {
+		if ($filter === self::T_LOCAL) {
 			return false;
 		}
 		if ((($filter & self::T_EXTENDS) > 0) && class_exists($name)) {

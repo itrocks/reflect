@@ -34,7 +34,7 @@ trait Reflection_Has
 	 * @template A of object
 	 * @throws ReflectionException
 	 */
-	public function getAttributeInstances(string $name = null, int $flags = 0) : array
+	public function getAttributeInstances(string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		$instances = [];
 		foreach ($this->getAttributes($name, $flags) as $attribute) {
@@ -52,7 +52,7 @@ trait Reflection_Has
 	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
 	 * @template A of object
 	 */
-	public function getAttributes(string $name = null, int $flags = 0) : array
+	public function getAttributes(string $name = null, int $flags = self::T_LOCAL) : array
 	{
 		/** @var array<string,array<string,array<int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*>,list<Reflection_Attribute<$this,A>>>>> $cache */
 		static $cache = [];
@@ -128,10 +128,10 @@ trait Reflection_Has
 
 	//-------------------------------------------------------------------------------- moreAttributes
 	/**
-	 * @param list<Reflection_Attribute<$this,A>>&                        $attributes
-	 * @param ?class-string<A>                                            $name
+	 * @param list<Reflection_Attribute<$this,I>>&                        $attributes
+	 * @param ?class-string<I>                                            $name
 	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
-	 * @template A of object
+	 * @template I of object
 	 */
 	protected abstract function moreAttributes(
 		array &$attributes, ?string $name, int $flags, bool $is_repeatable

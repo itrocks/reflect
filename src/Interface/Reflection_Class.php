@@ -7,11 +7,7 @@ use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 
-/**
- * An interface for all reflection classes
- *
- * @template Class of object
- */
+/** @template Class of object */
 interface Reflection_Class extends Reflection
 {
 
@@ -95,6 +91,20 @@ interface Reflection_Class extends Reflection
 	 * @throws ReflectionException
 	 */
 	public function getProperty(string $name) : Reflection_Property;
+
+	//------------------------------------------------------------------------- getReflectionConstant
+	/**
+	 * @return Reflection_Class_Constant<Class>
+	 * @throws ReflectionException
+	 */
+	public function getReflectionConstant(string $name) : Reflection_Class_Constant;
+
+	//------------------------------------------------------------------------ getReflectionConstants
+	/**
+	 * @param ?int-mask-of<self::T_*|ReflectionClassConstant::IS_*> $filter
+	 * @return array<string,Reflection_Class_Constant<Class>>
+	 */
+	public function getReflectionConstants(?int $filter = self::T_INHERIT) : array;
 
 	//--------------------------------------------------------------------------------- getTraitNames
 	/**

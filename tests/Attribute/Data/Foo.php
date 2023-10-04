@@ -7,6 +7,7 @@ use Attribute;
 use ITRocks\Reflect\Attribute\Has_Default;
 use ITRocks\Reflect\Attribute\Inheritable;
 use ITRocks\Reflect\Attribute\Override;
+use ITRocks\Reflect\Attribute\Override_Method;
 use ITRocks\Reflect\Attribute\Repeatable;
 use ITRocks\Reflect\Attribute\Single;
 use with_no_class;
@@ -48,6 +49,8 @@ class Has_Default_Property { public function __construct(public string $value) {
 class Inheritable_Class { use Single; }
 #[Attribute(Attribute::TARGET_METHOD), Inheritable]
 class Inheritable_Method { use Single; }
+#[Attribute(Attribute::TARGET_METHOD)]
+class Inheritable_Method_Child extends Inheritable_Method {}
 #[Attribute(Attribute::TARGET_PROPERTY), Inheritable]
 class Inheritable_Property { use Single; }
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -71,27 +74,36 @@ class Repeatable_Property { function __construct(public string $id) {} }
 
 #[Inheritable_Repeatable('CII'), Repeatable_Class('CII')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC', 'OCII'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC', 'OCII'))]
 interface CII {}
 
 #[Inheritable_Repeatable('CIIB'), Repeatable_Class('CIIB')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC', 'OCIIB'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC', 'OCIIB'))]
 interface CIIB {}
 
 #[Inheritable_Repeatable('CI'), Repeatable_Class('CI')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC', 'OCI'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC', 'OCI'))]
 interface CI extends CII, CIIB {}
 
 #[Inheritable_Repeatable('CIB'), Repeatable_Class('CIB')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC', 'OCIB'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC', 'OCIB'))]
 interface CIB {}
 
 #[Inheritable_Repeatable('PI'), Repeatable_Class('PI')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OP', 'OPI'))]
 #[Override('inheritable_with_break', new Inheritable_Repeatable('OP', 'OPI'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OP', 'OPI'))]
+#[Override_Method('inheritableWithBreak', new Inheritable_Repeatable('OP', 'OPI'))]
 interface PI {}
 
 #[Inheritable_Class, Inheritable_Repeatable('PTT'), Repeatable_Class('PTT')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OP', 'OPTT'))]
+#[Override('inheritable_with_break', new Inheritable_Repeatable('OP', 'OPTT'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OP', 'OPTT'))]
+#[Override_Method('inheritableWithBreak', new Inheritable_Repeatable('OP', 'OPTT'))]
 trait PTT {
 
 	#[Inheritable_Method]
@@ -107,11 +119,20 @@ trait PTT {
 	#[Inheritable_Property]
 	public int $ptt = 0;
 
+	#[All_Targets, Inheritable_Method]
+	public function inheritable() : void {}
+
+	#[Inheritable_Method]
+	#[Inheritable_Repeatable('P', 'PTT'), Repeatable_Method('PTT')]
+	public function inheritableRepeatable() : void {}
+
 }
 
 #[Inheritable_Repeatable('PT'), Repeatable_Class('PT')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OP', 'OPT'))]
 #[Override('inheritable_with_break', new Inheritable_Repeatable('OP', 'OPT'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OP', 'OPT'))]
+#[Override_Method('inheritableWithBreak', new Inheritable_Repeatable('OP', 'OPT'))]
 trait PT {
 	use PTT;
 
@@ -132,10 +153,21 @@ trait PT {
 	#[All_Targets, Simple_Property(1)]
 	public int $same_attributes = 0;
 
+	#[Inheritable_Method]
+	public function inheritable() : void {}
+
+	#[Inheritable_Repeatable('P', 'PT'), Repeatable_Method('PT')]
+	public function inheritableRepeatable() : void {}
+
+	#[Inheritable_Repeatable('P', 'PT')]
+	public function inheritableWithBreak() : void {}
+
 }
 
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OR'))]
 #[Override('inheritable_with_break', new Inheritable_Repeatable('broken'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OR'))]
+#[Override_Method('inheritableWithBreak', new Inheritable_Repeatable('broken-class'))]
 class R {
 
 	/** @noinspection PhpUnusedPrivateFieldInspection */
@@ -143,12 +175,19 @@ class R {
 	/** @phpstan-ignore-next-line for testing purpose */
 	private int $inheritable_repeatable = 0;
 
+	/** @noinspection PhpUnusedPrivateMethodInspection */
+	/** @phpstan-ignore-next-line Method inheritableRepeatable() is unused */
+	#[Inheritable_Repeatable('R'), Repeatable_Method('R')]
+	private function inheritableRepeatable() : void {}
+
 }
 
 /** @phpstan-ignore-next-line with_no_class */
 #[Inheritable_Repeatable('P'), Repeatable_Class('P'), with_no_class(5)]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OP'))]
 #[Override('inheritable_with_break', new Inheritable_Repeatable('OP'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OP'))]
+#[Override_Method('inheritableWithBreak', new Inheritable_Repeatable('OP'))]
 class P extends R implements PI {
 	use PT;
 
@@ -170,14 +209,29 @@ class P extends R implements PI {
 	#[All_Targets, Simple_Property(1)]
 	public int $same_attributes = 0;
 
+	/** @phpstan-ignore-next-line with_no_class */
+	#[Inheritable_Repeatable('P'), Repeatable_Method('P'), with_no_class(15)]
+	public function inheritableRepeatable() : void {}
+
+	#[Inheritable_Method]
+	public function overrideInstanceOf() : void {}
+
+	public function overrideName() : void {}
+
 }
 
 #[Inheritable_Repeatable('CT')]
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC', 'OCT'))]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC', 'OCT'))]
 trait CT {
 
 	#[Inheritable_Repeatable('C', 'CT')]
 	public int $inheritable_repeatable = 0;
+
+	public function aliasing() : void {}
+
+	#[Inheritable_Repeatable('C', 'CT')]
+	public function inheritableRepeatable() : void {}
 
 }
 
@@ -186,9 +240,12 @@ trait CT {
 #[Override('inheritable_repeatable', new Inheritable_Repeatable('OC1'), new Inheritable_Repeatable('OC2'))]
 #[Override('override_name', Inheritable_Property::class)]
 #[Override('override_instance_of', Inheritable_Property_Child::class)]
+#[Override_Method('inheritableRepeatable', new Inheritable_Repeatable('OC1'), new Inheritable_Repeatable('OC2'))]
+#[Override_Method('overrideInstanceOf', Inheritable_Method_Child::class)]
+#[Override_Method('overrideName', Inheritable_Method::class)]
 #[Repeatable_Class('C1'), Repeatable_Class('C2'), Simple_Class(12)]
 class C extends P implements CI, CIB {
-	use CT;
+	use CT { aliasing as aliasingCT; }
 
 	#[Inheritable_Property]
 	public int $alone = 0;
@@ -202,5 +259,17 @@ class C extends P implements CI, CIB {
 
 	#[Inheritable_Repeatable('C')]
 	public int $inheritable_with_break = 0;
+
+	public function aliasing() : void { $this->aliasingCT(); }
+
+	public function inheritable() : void {}
+
+	#[All_Targets]
+	#[Inheritable_Repeatable('C1'), Inheritable_Repeatable('C2')]
+	#[Repeatable_Method('C1'), Repeatable_Method('C2'), Simple_Method(22)]
+	public function inheritableRepeatable() : void {}
+
+	#[Inheritable_Repeatable('C')]
+	public function inheritableWithBreak() : void {}
 
 }

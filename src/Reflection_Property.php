@@ -202,8 +202,7 @@ class Reflection_Property extends ReflectionProperty implements Interface\Reflec
 	//-------------------------------------------------------------------------------------------- is
 	public function is(Interface\Reflection_Property $property) : bool
 	{
-		return ($property instanceof Reflection_Property)
-			&& ($property->getName() === $this->getName())
+		return ($property->getName() === $this->getName())
 			&& ($property->getDeclaringClassName(true) === $this->getDeclaringClassName(true));
 	}
 

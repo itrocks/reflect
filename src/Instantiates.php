@@ -38,6 +38,19 @@ trait Instantiates
 		return new Reflection_Class($object_or_class);
 	}
 
+	//------------------------------------------------------------------------- newReflectionConstant
+	/**
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @param class-string<C>|C $object_or_class
+	 * @return Reflection_Class_Constant<C>
+	 * @template C of object
+	 */
+	public static function newReflectionConstant(object|string $object_or_class, string $constant)
+		: Reflection_Class_Constant
+	{
+		return new Reflection_Class_Constant($object_or_class, $constant);
+	}
+
 	//--------------------------------------------------------------------------- newReflectionMethod
 	/**
 	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared

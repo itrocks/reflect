@@ -6,8 +6,6 @@ use ITRocks\Reflect\Type\Reflection_Type;
 use ReflectionException;
 
 /**
- * An interface for all reflection method classes
- *
  * @extends Reflection_Class_Component<Class>
  * @template Class of object
  */
@@ -56,6 +54,9 @@ interface Reflection_Method extends Reflection_Class_Component
 
 	//------------------------------------------------------------------------------------ isInternal
 	public function isInternal() : bool;
+
+	//-------------------------------------------------------------------------------------- isStatic
+	public function isStatic() : bool;
 
 	//--------------------------------------------------------------------------------- isUserDefined
 	public function isUserDefined() : bool;
