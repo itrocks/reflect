@@ -11,6 +11,7 @@ class Parser // phpcs:ignore
 {
 
 	//---------------------------------------------------------------------------------------- BOTTOM
+	/** @var non-empty-list<string> */
 	protected const BOTTOM = ['never', 'never-return', 'never-returns', 'no-return', 'void'];
 
 	//---------------------------------------------------------------------------------------- DEPTHS
@@ -127,6 +128,9 @@ class Parser // phpcs:ignore
 			$type_string = '';
 			$position ++;
 		}
+		if (($type_string !== '') && is_null($type)) {
+			$type = $this->parseSingleType($type_string);
+		}
 		return $type ?? new Undefined($this->reflection);
 	}
 
@@ -148,7 +152,11 @@ class Parser // phpcs:ignore
 	//------------------------------------------------------------------------------- parseSingleType
 	protected function parseSingleType(string $type_string) : Single
 	{
-		if (in_array($type_string, static::SINGLE, true) || $this->isClassName($type_string)) {
+		if (
+			in_array($type_string, static::BOTTOM, true)
+			|| in_array($type_string, static::SINGLE, true)
+			|| $this->isClassName($type_string)
+		) {
 			return new Named($type_string, $this->reflection, $this->allows_null);
 		}
 		return new Undefined($this->reflection);
