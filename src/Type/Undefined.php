@@ -2,10 +2,11 @@
 namespace ITRocks\Reflect\Type;
 
 use ITRocks\Reflect\Interface\Reflection;
+use ITRocks\Reflect\Type\Interface\Single;
 
-class Reflection_Undefined_Type implements Reflection_Type
+class Undefined implements Single
 {
-	use Reflection_Type_Common;
+	use Common;
 
 	//----------------------------------------------------------------------------------- __construct
 	public function __construct(Reflection $reflection)

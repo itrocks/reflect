@@ -1,8 +1,8 @@
 <?php
 namespace ITRocks\Reflect;
 
-use ITRocks\Reflect\Type\Reflection_Type;
-use ITRocks\Reflect\Type\Reflection_Undefined_Type;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
+use ITRocks\Reflect\Type\Undefined;
 use ReflectionException;
 use ReflectionMethod;
 use ReturnTypeWillChange;
@@ -123,7 +123,7 @@ class Reflection_Method extends ReflectionMethod implements Interface\Reflection
 		static $depth = 0;
 		if ($cache && ($depth === 0)) {
 			/** @var int<1,max> $cache_index */
-			$cache_index = $filter | intval($locate);
+			$cache_index = $filter | (int)$locate;
 			if (isset($this->cache['doc_comment'][$cache_index])) {
 				return $this->cache['doc_comment'][$cache_index];
 			}
@@ -263,7 +263,7 @@ class Reflection_Method extends ReflectionMethod implements Interface\Reflection
 			. 'function ' . $this->name
 			. ($this->returnsReference() ? '& ' : '')
 			. '(' . join(', ', $parameters) . ')'
-			. (($return_type instanceof Reflection_Undefined_Type) ? '' : (' : ' . $return_type));
+			. (($return_type instanceof Undefined) ? '' : (' : ' . $return_type));
 	}
 
 	//--------------------------------------------------------------------------------- getReturnType

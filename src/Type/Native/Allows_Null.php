@@ -1,9 +1,8 @@
 <?php
-namespace ITRocks\Reflect\Type;
+namespace ITRocks\Reflect\Type\Native;
 
-trait Reflection_Defined_Type_Common
+trait Allows_Null
 {
-	use Reflection_Type_Common;
 
 	//------------------------------------------------------------------------------------ allowsNull
 	public function allowsNull() : bool

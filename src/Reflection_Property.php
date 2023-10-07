@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect;
 
-use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ReflectionException;
 use ReflectionProperty;
 use ReturnTypeWillChange;
@@ -83,7 +83,7 @@ class Reflection_Property extends ReflectionProperty implements Interface\Reflec
 
 	//--------------------------------------------------------------------------------- getDocComment
 	/**
-	 * @param int<0,max> $filter self::T_EXTENDS|self::T_INHERIT|self::T_USE (all work the same way)
+	 * @param int<0,max> $filter self::T_EXTENDS|self::T_INHERIT|self::T_USE
 	 * @param bool       $cache true if save/use cache
 	 */
 	public function getDocComment(
@@ -92,7 +92,9 @@ class Reflection_Property extends ReflectionProperty implements Interface\Reflec
 	{
 		$doc_comment = parent::getDocComment();
 		if (($doc_comment !== false) && $locate) {
-			$doc_comment = '/** FROM ' . $this->getDeclaringClassName(true) . " */\n" . $doc_comment;
+			$prefix      = substr($doc_comment, 0, (int)strpos($doc_comment, '/'));
+			$doc_comment = $prefix . '/** FROM ' . $this->getDeclaringClassName(true) . " */\n"
+				. $doc_comment;
 		}
 		if ($filter === self::T_LOCAL) {
 			return $doc_comment;
@@ -100,7 +102,7 @@ class Reflection_Property extends ReflectionProperty implements Interface\Reflec
 		static $depth = 0;
 		if ($cache && ($depth === 0)) {
 			/** @var int<1,max> $cache_index */
-			$cache_index = $filter | intval($locate);
+			$cache_index = $filter | (int)$locate;
 			if (isset($this->cache['doc_comment'][$cache_index])) {
 				return $this->cache['doc_comment'][$cache_index];
 			}

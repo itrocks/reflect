@@ -145,7 +145,7 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 		static $depth = 0;
 		if ($cache && ($depth === 0)) {
 			/** @var int<1,max> $cache_index */
-			$cache_index = $filter | intval($locate);
+			$cache_index = $filter | (int)$locate;
 			if (isset($this->cache['doc_comment'][$cache_index])) {
 				return $this->cache['doc_comment'][$cache_index];
 			}
@@ -548,7 +548,7 @@ class Reflection_Class extends ReflectionClass implements Interface\Reflection_C
 			$this->cache['tokens'] = [];
 			return $this->cache['tokens'];
 		}
-		$this->cache['tokens'] = token_get_all(strval(file_get_contents($filename)));
+		$this->cache['tokens'] = token_get_all((string)file_get_contents($filename));
 		return $this->cache['tokens'];
 	}
 

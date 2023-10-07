@@ -1,18 +1,19 @@
 <?php
-namespace ITRocks\Reflect\Type;
+namespace ITRocks\Reflect\Type\Native;
 
 use ITRocks\Reflect\Interface\Reflection;
-use ReflectionIntersectionType;
+use ITRocks\Reflect\Type\Interface;
+use ReflectionUnionType;
 
-class Reflection_Intersection_Type implements Reflection_Multiple_Type
+class Union implements Interface\Union
 {
-	use Reflection_Multiple_Type_Common;
+	use Multiple;
 
 	//----------------------------------------------------------------------------------------- $type
-	protected ReflectionIntersectionType $type;
+	protected ReflectionUnionType $type;
 
 	//----------------------------------------------------------------------------------- __construct
-	public function __construct(ReflectionIntersectionType $type, Reflection $reflection)
+	public function __construct(ReflectionUnionType $type, Reflection $reflection)
 	{
 		$this->reflection = $reflection;
 		$this->type       = $type;
@@ -21,7 +22,13 @@ class Reflection_Intersection_Type implements Reflection_Multiple_Type
 	//------------------------------------------------------------------------------------ __toString
 	public function __toString() : string
 	{
-		return join('&', $this->getTypes());
+		$types = [];
+		foreach ($this->getTypes() as $type) {
+			$types[] = ($type instanceof Interface\Multiple)
+				? ('(' . $type . ')')
+				: $type;
+		}
+		return join('|', $types);
 	}
 
 }

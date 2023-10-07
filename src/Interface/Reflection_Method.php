@@ -2,7 +2,7 @@
 namespace ITRocks\Reflect\Interface;
 
 use ITRocks\Reflect\Reflection_Parameter;
-use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ReflectionException;
 
 /**

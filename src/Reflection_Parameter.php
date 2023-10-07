@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect;
 
-use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ReflectionAttribute;
 use ReflectionException;
 use ReflectionMethod;
@@ -30,7 +30,7 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 	//------------------------------------------------------------------------------------ __toString
 	public function __toString() : string
 	{
-		$type      = strval($this->getType());
+		$type      = (string)$this->getType();
 		$reference = $this->isPassedByReference();
 		$optional  = $this->isOptional();
 		if ($optional) {

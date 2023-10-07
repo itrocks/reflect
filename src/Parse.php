@@ -105,7 +105,7 @@ abstract class Parse
 				$name = ltrim($token[1], '\\');
 				break;
 			case T_NAME_QUALIFIED:
-				$slash = intval(strpos($token[1], '\\'));
+				$slash = (int)strpos($token[1], '\\');
 				$use   = $namespace_use[substr($token[1], 0, $slash)] ?? null;
 				$name  = isset($use)
 					? ($use . substr($token[1], $slash))

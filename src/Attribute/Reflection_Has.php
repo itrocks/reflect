@@ -57,8 +57,8 @@ trait Reflection_Has
 		/** @var array<string,array<string,array<int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*>,list<Reflection_Attribute<$this,A>>>>> $cache */
 		static $cache = [];
 		$cache_key    = $this->path();
-		if (isset($cache[$cache_key][strval($name)][$flags])) {
-			return $cache[$cache_key][strval($name)][$flags];
+		if (isset($cache[$cache_key][(string)$name][$flags])) {
+			return $cache[$cache_key][(string)$name][$flags];
 		}
 		$attributes = [];
 		/** @noinspection PhpMultipleClassDeclarationsInspection Identical getAttributes prototypes */
@@ -104,7 +104,7 @@ trait Reflection_Has
 				$attributes[] = $attribute;
 			}
 		}
-		$cache[$cache_key][strval($name)][$flags] = $attributes;
+		$cache[$cache_key][(string)$name][$flags] = $attributes;
 		return $attributes;
 	}
 

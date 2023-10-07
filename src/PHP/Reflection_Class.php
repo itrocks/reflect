@@ -127,7 +127,7 @@ class Reflection_Class implements Interface\Reflection_Class
 	//------------------------------------------------------------------------------ getNamespaceName
 	public function getNamespaceName() : string
 	{
-		return substr($this->name, 0, intval(strrpos($this->name, '\\')));
+		return substr($this->name, 0, (int)strrpos($this->name, '\\'));
 	}
 
 	//-------------------------------------------------------------------------------- getParentClass

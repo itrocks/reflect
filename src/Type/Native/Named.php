@@ -1,12 +1,15 @@
 <?php
-namespace ITRocks\Reflect\Type;
+namespace ITRocks\Reflect\Type\Native;
 
 use ITRocks\Reflect\Interface\Reflection;
+use ITRocks\Reflect\Type\Common;
+use ITRocks\Reflect\Type\Interface;
 use ReflectionNamedType;
 
-class Reflection_Named_Type implements Reflection_Type
+class Named implements Interface\Named
 {
-	use Reflection_Defined_Type_Common;
+	use Allows_Null;
+	use Common;
 
 	//----------------------------------------------------------------------------------------- $type
 	protected ReflectionNamedType $type;

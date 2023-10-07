@@ -3,7 +3,7 @@ namespace ITRocks\Reflect\Tests;
 
 use ITRocks\Reflect\Reflection_Parameter;
 use ITRocks\Reflect\Tests\Data\C;
-use ITRocks\Reflect\Type\Reflection_Named_Type;
+use ITRocks\Reflect\Type\Native\Named;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 
@@ -23,7 +23,7 @@ class Reflection_Parameter_Test extends TestCase
 	{
 		/** @noinspection PhpUnhandledExceptionInspection Valid parameter */
 		$type = (new Reflection_Parameter([C::class, 'withParameter'], 'parameter'))->getType();
-		self::assertInstanceOf(Reflection_Named_Type::class, $type);
+		self::assertInstanceOf(Named::class, $type);
 		self::assertEquals('string', $type->getName());
 	}
 

@@ -3,11 +3,11 @@ namespace ITRocks\Reflect\Tests;
 
 use ITRocks\Reflect\Reflection_Method;
 use ITRocks\Reflect\Reflection_Property;
-use ITRocks\Reflect\Type\Reflection_Intersection_Type;
-use ITRocks\Reflect\Type\Reflection_Multiple_Type;
-use ITRocks\Reflect\Type\Reflection_Named_Type;
-use ITRocks\Reflect\Type\Reflection_Undefined_Type;
-use ITRocks\Reflect\Type\Reflection_Union_Type;
+use ITRocks\Reflect\Type\Interface\Multiple;
+use ITRocks\Reflect\Type\Native\Intersection;
+use ITRocks\Reflect\Type\Native\Named;
+use ITRocks\Reflect\Type\Native\Union;
+use ITRocks\Reflect\Type\Undefined;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
@@ -44,9 +44,9 @@ class Type_Test extends TestCase
 	public function testGetAllTypes(int $key, string $function_name, string $type_names) : void
 	{
 		$type = (new Reflection_Method(Types::class, $function_name))->getReturnType();
-		self::assertInstanceOf(Reflection_Union_Type::class, $type, $key . ' Bad instance');
+		self::assertInstanceOf(Union::class, $type, $key . ' Bad instance');
 		$all_types = array_map(
-			function(Reflection_Named_Type $type) { return $type->getName(); },
+			function(Named $type) { return $type->getName(); },
 			$type->getAllTypes()
 		);
 		self::assertEquals(explode(',', $type_names), $all_types, $key . ' Bad types');
@@ -71,7 +71,7 @@ class Type_Test extends TestCase
 			self::assertEquals('', $expected, 'Null should have no name' . $message);
 			return;
 		}
-		if (is_a($reflect_type, Reflection_Named_Type::class)) {
+		if (is_a($reflect_type, Named::class)) {
 			self::assertEquals($expected, $reflect_type->getName(), $message . ' Bad name');
 		}
 		else {
@@ -79,7 +79,7 @@ class Type_Test extends TestCase
 		}
 		if (
 			is_a($native_type, ReflectionNamedType::class)
-			&& is_a($reflect_type, Reflection_Named_Type::class)
+			&& is_a($reflect_type, Named::class)
 		) {
 			self::assertEquals(
 				$native_type->getName(), $reflect_type->getName(), $message . ' Name do not match native'
@@ -89,14 +89,14 @@ class Type_Test extends TestCase
 
 	//---------------------------------------------------------------------------------- testIdentity
 	/** @throws ReflectionException */
-	#[TestWith([0, 'int',          ReflectionNamedType::class, Reflection_Named_Type::class])]
-	#[TestWith([1, 'int_types',    ReflectionUnionType::class, Reflection_Union_Type::class])]
-	#[TestWith([2, 'or_and',       ReflectionUnionType::class, Reflection_Union_Type::class])]
-	#[TestWith([3, 'types',        ReflectionNamedType::class, Reflection_Named_Type::class])]
-	#[TestWith([4, 'types_int',    ReflectionUnionType::class, Reflection_Union_Type::class])]
-	#[TestWith([5, 'types_null',   ReflectionNamedType::class, Reflection_Named_Type::class])]
-	#[TestWith([6, 'types_null_2', ReflectionNamedType::class, Reflection_Named_Type::class])]
-	#[TestWith([7, 'without',      '',                         Reflection_Undefined_Type::class])]
+	#[TestWith([0, 'int',          ReflectionNamedType::class, Named::class])]
+	#[TestWith([1, 'int_types',    ReflectionUnionType::class, Union::class])]
+	#[TestWith([2, 'or_and',       ReflectionUnionType::class, Union::class])]
+	#[TestWith([3, 'types',        ReflectionNamedType::class, Named::class])]
+	#[TestWith([4, 'types_int',    ReflectionUnionType::class, Union::class])]
+	#[TestWith([5, 'types_null',   ReflectionNamedType::class, Named::class])]
+	#[TestWith([6, 'types_null_2', ReflectionNamedType::class, Named::class])]
+	#[TestWith([7, 'without',      '',                         Undefined::class])]
 	public function testIdentity(
 		int $ley, string $property_name, string $native_class, string $reflect_class
 	) : void
@@ -105,18 +105,18 @@ class Type_Test extends TestCase
 		$native_type  = (new ReflectionProperty(Types::class,  $property_name))->getType();
 		$reflect_type = (new Reflection_Property(Types::class, $property_name))->getType();
 		if (is_null($native_type)) {
-			self::assertInstanceOf(Reflection_Undefined_Type::class, $reflect_type, $message);
+			self::assertInstanceOf(Undefined::class, $reflect_type, $message);
 			self::assertEquals('', $native_class, $message . ' Native should be null');
-			self::assertEquals(Reflection_Undefined_Type::class, $reflect_class, $message);
+			self::assertEquals(Undefined::class, $reflect_class, $message);
 		}
 		else {
 			self::assertEquals(get_class($native_type), $native_class, $message . ' Bad native class');
 			self::assertEquals(get_class($reflect_type), $reflect_class, $message . ' Bad Reflect class');
 		}
-		if (($property_name === 'or_and') && ($reflect_type instanceof Reflection_Union_Type)) {
+		if (($property_name === 'or_and') && ($reflect_type instanceof Union)) {
 			$tested = false;
 			foreach ($reflect_type->getTypes() as $type) {
-				if (is_a($type, Reflection_Intersection_Type::class)) {
+				if (is_a($type, Intersection::class)) {
 					$tested = true;
 					break;
 				}
@@ -148,18 +148,19 @@ class Type_Test extends TestCase
 		$native_built_in = (isset($native_type) && ($native_type instanceof ReflectionNamedType))
 			? $native_type->isBuiltin()
 			: null;
-		$reflect_built_in = ($reflect_type instanceof Reflection_Named_Type)
+		$reflect_built_in = ($reflect_type instanceof Named)
 			? $reflect_type->isBuiltin()
 			: null;
 		self::assertEquals($expected, $native_built_in,  $message . ' Bad native isBuiltin() result');
 		self::assertEquals($expected, $reflect_built_in, $message . ' Bad Reflect isBuiltin() result');
-		if (!($reflect_type instanceof Reflection_Multiple_Type)) {
+		if (!($reflect_type instanceof Multiple)) {
 			return;
 		}
 		$reflect_types     = $reflect_type->getAllTypes();
 		$expected_built_in = reset($expected_in_types);
 		$reflect_type      = reset($reflect_types);
 		while ($reflect_type !== false) {
+			self::assertInstanceOf(Named::class, $reflect_type);
 			self::assertEquals(
 				$expected_built_in,
 				$reflect_type->isBuiltin(),

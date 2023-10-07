@@ -1,5 +1,5 @@
 <?php
-namespace ITRocks\Reflect\Type;
+namespace ITRocks\Reflect\Type\Interface;
 
 use Stringable;
 

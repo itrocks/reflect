@@ -1,7 +1,7 @@
 <?php
 namespace ITRocks\Reflect\Interface;
 
-use ITRocks\Reflect\Type\Reflection_Type;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ReflectionException;
 
 /**
