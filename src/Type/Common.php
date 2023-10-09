@@ -6,6 +6,7 @@ use ITRocks\Reflect\Interface\Reflection_Method;
 use ITRocks\Reflect\Interface\Reflection_Parameter;
 use ITRocks\Reflect\Interface\Reflection_Property;
 use ITRocks\Reflect\Type\Interface\Reflection_Type;
+use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Parser;
 
 trait Common
@@ -15,9 +16,10 @@ trait Common
 	protected Reflection $reflection;
 
 	//----------------------------------------------------------------------------- getDocCommentType
+	/** @throws Exception */
 	public function getDocCommentType() : Reflection_Type
 	{
-		return (new Parser($this->reflection, $this->getDocCommentTypeString()))->parse();
+		return (new Parser($this->reflection))->parse($this->getDocCommentTypeString());
 	}
 
 	//----------------------------------------------------------------------- getDocCommentTypeString

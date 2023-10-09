@@ -3,9 +3,8 @@ namespace ITRocks\Reflect\Type\PHP;
 
 use ITRocks\Reflect\Type\Common;
 use ITRocks\Reflect\Type\Interface;
-use ITRocks\Reflect\Type\Interface\Intersection;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ITRocks\Reflect\Type\Interface\Single;
-use ITRocks\Reflect\Type\Interface\Union;
 
 trait Multiple
 {
@@ -13,7 +12,7 @@ trait Multiple
 	use Common;
 
 	//---------------------------------------------------------------------------------------- $types
-	/** @var non-empty-list<Intersection|Single|Union> $types */
+	/** @var non-empty-list<Reflection_Type> $types */
 	protected array $types;
 
 	//------------------------------------------------------------------------------------ __toString
@@ -62,7 +61,7 @@ trait Multiple
 	}
 
 	//-------------------------------------------------------------------------------------- getTypes
-	/** @return non-empty-list<Intersection|Single|Union> */
+	/** @return non-empty-list<Reflection_Type> */
 	public function getTypes() : array
 	{
 		return $this->types;

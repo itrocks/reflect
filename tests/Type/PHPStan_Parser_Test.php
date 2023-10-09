@@ -2,11 +2,18 @@
 namespace ITRocks\Reflect\Tests\Type;
 
 use ITRocks\Reflect\Reflection_Property;
+use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
+use ITRocks\Reflect\Type\PHP\Union;
 use ITRocks\Reflect\Type\PHPStan\Collection;
+use ITRocks\Reflect\Type\PHPStan\Exception;
+use ITRocks\Reflect\Type\PHPStan\Float_Literal;
+use ITRocks\Reflect\Type\PHPStan\Int_Literal;
 use ITRocks\Reflect\Type\PHPStan\Parser;
-use ITRocks\Reflect\Type\Undefined;
+use ITRocks\Reflect\Type\PHPStan\String_Literal;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+use ReflectionClassConstant;
 
 class PHPStan_Parser_Test // phpcs:ignore
 	extends TestCase
@@ -14,36 +21,357 @@ class PHPStan_Parser_Test // phpcs:ignore
 
 	//---------------------------------------------------------------------------------------- $array
 	/** @var array<self> */
-	public array $array = [];
+	protected array $array = [];
 
-	//------------------------------------------------------------------- testParseSquareBracketArray
-	public function testParseSquareBracketArray() : void
+	//--------------------------------------------------------------------------------------- $parser
+	protected static Parser $parser;
+
+	//------------------------------------------------------------------------------ setUpBeforeClass
+	public static function setUpBeforeClass() : void
 	{
-		/** @noinspection PhpUnhandledExceptionInspection exists */
-		$parser = new Parser(new Reflection_Property($this, 'array'), self::class . '[]');
-		$type   = $parser->parse();
+		self::$parser = new Parser(new Reflection_Property(__CLASS__, 'array'));
+	}
+
+	//-------------------------------------------------------------------------------- testAllowsNull
+	/** @throws Exception */
+	public function testAllowsNull() : void
+	{
+		$type = self::$parser->parse('int');
+		static::assertInstanceOf(Named::class, $type);
+		static::assertFalse($type->allowsNull());
+		$type = self::$parser->parse('?int');
+		static::assertInstanceOf(Named::class, $type);
+		static::assertTrue($type->allowsNull());
+	}
+
+	//------------------------------------------------------ testBadNumericLiteralBadCharacterInFloat
+	/** @throws Exception */
+	public function testBadNumericLiteralBadCharacterInFloat() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_FLOAT_LITERAL);
+		$this->expectExceptionMessage(
+			'Bad character [*] in float literal [15*.18.] into [15*.18.] position 2'
+		);
+		self::$parser->parse('15*.18.');
+	}
+
+	//-------------------------------------------------------- testBadNumericLiteralBadCharacterInInt
+	/** @throws Exception */
+	public function testBadNumericLiteralBadCharacterInInt() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_INT_LITERAL);
+		$this->expectExceptionMessage(
+			'Bad character [*] in int literal [15**/-19] into [15**/-19] position 2'
+		);
+		self::$parser->parse('15**/-19');
+	}
+
+	//----------------------------------------------------- testBadNumericLiteralMissingDigitAfterDot
+	/** @throws Exception */
+	public function testBadNumericLiteralMissingDigitAfterDot() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_FLOAT_LITERAL);
+		$this->expectExceptionMessage(
+			'Missing digit after dot [.] in float literal [15.] into [15.] position 3'
+		);
+		self::$parser->parse('15.');
+	}
+
+	//-------------------------------------------------------------- testBadNumericLiteralTooManyDots
+	/** @throws Exception */
+	public function testBadNumericLiteralTooManyDots() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_FLOAT_LITERAL);
+		$this->expectExceptionMessage(
+			'Too many dots [.] in float literal [15..19] into [15..19] position 3'
+		);
+		self::$parser->parse('15..19');
+	}
+
+	//------------------------------------------------------------------------- testBadStartSeparator
+	public function testBadStartSeparator() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_START_SEPARATOR);
+		$this->expectExceptionMessage('Type cannot start with separator [|] into [|int] position 0');
+		self::$parser->parse('|int');
+	}
+
+	//--------------------------------------------------------- testBadStringLiteralBadCharacterAfter
+	public function testBadStringLiteralBadCharacterAfter() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_STRING_LITERAL);
+		$this->expectExceptionMessage(
+			'Bad character [i] after string literal [text] into ["text"int] position 6'
+		);
+		self::$parser->parse('"text"int');
+	}
+
+	//--------------------------------------------------- testBadStringLiteralEndsWithEscapeCharacter
+	/** @throws Exception */
+	public function testBadStringLiteralEndsWithEscapeCharacter() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_STRING_LITERAL);
+		$this->expectExceptionMessage("Unterminated string literal [text\\] into ['text\\] position 6");
+		self::$parser->parse("'text\\");
+	}
+
+	//---------------------------------------------------------------- testBadStringLiteralQuoteAlone
+	/** @throws Exception */
+	public function testBadStringLiteralQuoteAlone() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_STRING_LITERAL);
+		$this->expectExceptionMessage("Unterminated string literal into ['] position 1");
+		self::$parser->parse("'");
+	}
+
+	//-------------------------------------------------------------- testBadStringLiteralUnterminated
+	/** @throws Exception */
+	public function testBadStringLiteralUnterminated() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_STRING_LITERAL);
+		$this->expectExceptionMessage("Unterminated string literal [text] into ['text] position 5");
+		self::$parser->parse("'text");
+	}
+
+	//--------------------------------------------------------------------- testBottomSingleNamedType
+	/** @throws Exception */
+	public function testBottomSingleNamedType() : void
+	{
+		/** @var non-empty-list<string> $bottom_names */
+		$bottom_names = (new ReflectionClassConstant(Parser::class, 'BOTTOM'))->getValue();
+		/** @var non-empty-list<string> $single_names */
+		$single_names = (new ReflectionClassConstant(Parser::class, 'SINGLE'))->getValue();
+		foreach (array_merge($bottom_names, $single_names) as $name) {
+			$type = self::$parser->parse($name);
+			self::assertInstanceOf(Named::class, $type);
+			self::assertEquals($name, $type->getName());
+		}
+	}
+
+	//---------------------------------------------------------------------------- testClassNamedType
+	/** @throws Exception */
+	public function testClassNamedType() : void
+	{
+		foreach ([__CLASS__, '\\' . __CLASS__, 'PHPStan_Parser_Test'] as $name) {
+			$type = self::$parser->parse($name);
+			self::assertInstanceOf(Named::class, $type);
+			self::assertEquals($name, $type->getName());
+		}
+	}
+
+	//------------------------------------------------------------------------------ testFloatLiteral
+	/** @throws Exception */
+	public function testFloatLiteral() : void
+	{
+		foreach (['5.28', '.12', '0.12', '0018.12', '-108.3'] as $float) {
+			$type = self::$parser->parse($float);
+			self::assertInstanceOf(Float_Literal::class, $type);
+			self::assertEquals((float)$float, $type->getValue());
+		}
+	}
+
+	//-------------------------------------------------------------------------------- testIntLiteral
+	/** @throws Exception */
+	public function testIntLiteral() : void
+	{
+		foreach (['0', '128', '00128', '-1000'] as $int) {
+			$type = self::$parser->parse($int);
+			self::assertInstanceOf(Int_Literal::class, $type);
+			self::assertEquals((int)$int, $type->getValue());
+		}
+	}
+
+	//------------------------------------------------------------------------- testIntersectionUnion
+	/** @throws Exception */
+	public function testIntersectionUnion() : void
+	{
+		$type = self::$parser->parse('Intersection&Union|int');
+		self::assertInstanceOf(Union::class, $type);
+		$types = $type->getTypes();
+		self::assertCount(2, $types);
+		$type = end($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('int', $type->getName());
+		$types = prev($types);
+		self::assertInstanceOf(Intersection::class, $types);
+		$types = $types->getTypes();
+		self::assertCount(2, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Intersection', $type);
+		$type = next($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Union', $type);
+	}
+
+	//---------------------------------------------------------------------------------- testMultiple
+	/**
+	 * @param non-negative-int           $key
+	 * @param class-string               $multiple_class
+	 * @param array<string,class-string> $expect
+	 * @throws Exception
+	 */
+	#[TestWith([
+		0, 'int|string', Union::class, ['int' => Named::class, 'string' => Named::class]
+	])]
+	#[TestWith([
+		1, 'int|string|A\C', Union::class, ['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
+	])]
+	#[TestWith([
+		2, 'int&string', Intersection::class, ['int' => Named::class, 'string' => Named::class]
+	])]
+	#[TestWith([
+		3, 'int&string&A\C', Intersection::class, ['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
+	])]
+	public function testMultiple(int $key, string $source, string $multiple_class, array $expect)
+		: void
+	{
+		$type = self::$parser->parse($source);
+		static::assertInstanceOf($multiple_class, $type, "data set #$key");
+		/** @var Intersection|Union $type */
+		reset($expect);
+		foreach ($type->getTypes() as $type_key => $sub_type) {
+			static::assertIsString(current($expect), "data set #$key type $type_key");
+			static::assertInstanceOf(current($expect), $sub_type, "data set #$key type $type_key");
+			if ($sub_type instanceof Named) {
+				static::assertEquals(key($expect), $sub_type->getName(), "data set #$key type $type_key");
+			}
+			next($expect);
+		}
+	}
+
+	//------------------------------------------------------------------------ testSquareBracketArray
+	/** @throws Exception */
+	public function testSquareBracketArray() : void
+	{
+		$type = self::$parser->parse(self::class . '[]');
 		self::assertInstanceOf(Collection::class, $type);
 		self::assertEquals(1, $type->getDimensions());
 		$element = $type->getElementType();
 		self::assertInstanceOf(Named::class, $element);
 		self::assertEquals(self::class, $element->getName());
 
-		/** @noinspection PhpUnhandledExceptionInspection exists */
-		$parser = new Parser(new Reflection_Property($this, 'array'), 'non-negative-int[][]');
-		$type   = $parser->parse();
+		$type = self::$parser->parse('non-negative-int[][]');
 		self::assertInstanceOf(Collection::class, $type);
 		self::assertEquals(2, $type->getDimensions());
 		$element = $type->getElementType();
 		self::assertInstanceOf(Named::class, $element);
 		self::assertEquals('non-negative-int', $element->getName());
 
-		/** @noinspection PhpUnhandledExceptionInspection exists */
-		$parser = new Parser(new Reflection_Property($this, 'array'), 'bad-type[][][]');
-		$type   = $parser->parse();
-		self::assertInstanceOf(Collection::class, $type);
-		self::assertEquals(3, $type->getDimensions());
-		$element = $type->getElementType();
-		self::assertInstanceOf(Undefined::class, $element);
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::UNKNOWN_TYPE);
+		$this->expectExceptionMessage('Unknown type [bad-type] into [bad-type[][][]] position 0');
+		self::$parser->parse('bad-type[][][]');
+	}
+
+	//----------------------------------------------------------------------------- testStringLiteral
+	/** @throws Exception */
+	public function testStringLiteral() : void
+	{
+		foreach (['"simple"', "'single-quote'", '"with\\"escape"', '"int<0,max>"'] as $string) {
+			$type = self::$parser->parse($string);
+			self::assertInstanceOf(String_Literal::class, $type);
+			self::assertEquals(stripcslashes(substr($string, 1, -1)), $type->getValue());
+		}
+	}
+
+	//------------------------------------------------------------------------- testUnionIntersection
+	/** @throws Exception */
+	public function testUnionIntersection() : void
+	{
+		$type = self::$parser->parse('float|Intersection&Union');
+		self::assertInstanceOf(Union::class, $type);
+		$types = $type->getTypes();
+		self::assertCount(2, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('float', $type->getName());
+		$types = next($types);
+		self::assertInstanceOf(Intersection::class, $types);
+		$types = $types->getTypes();
+		self::assertCount(2, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Intersection', $type);
+		$type = next($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Union', $type);
+	}
+
+	//-------------------------------------------------------- testUnionIntersectionIntersectionUnion
+	/** @throws Exception */
+	public function testUnionIntersectionIntersectionUnion() : void
+	{
+		$type = self::$parser->parse('float|Intersection&Multiple&Union|int');
+		self::assertInstanceOf(Union::class, $type);
+		$types = $type->getTypes();
+		self::assertCount(3, $types);
+		$type = end($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('int', $type->getName());
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('float', $type->getName());
+		$types = next($types);
+		self::assertInstanceOf(Intersection::class, $types);
+		$types = $types->getTypes();
+		self::assertCount(3, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Intersection', $type);
+		$type = next($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Multiple', $type);
+		$type = next($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Union', $type);
+	}
+
+	//-------------------------------------------------------------------- testUnionIntersectionUnion
+	/** @throws Exception */
+	public function testUnionIntersectionUnion() : void
+	{
+		$type = self::$parser->parse('float|Intersection&Union|int');
+		self::assertInstanceOf(Union::class, $type);
+		$types = $type->getTypes();
+		self::assertCount(3, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('float', $type->getName());
+		$type = end($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('int', $type->getName());
+		$types = prev($types);
+		self::assertInstanceOf(Intersection::class, $types);
+		$types = $types->getTypes();
+		self::assertCount(2, $types);
+		$type = reset($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Intersection', $type);
+		$type = next($types);
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('Union', $type);
+	}
+
+	//------------------------------------------------------------------------------- testUnknownType
+	public function testUnknownType() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::UNKNOWN_TYPE);
+		$this->expectExceptionMessage(
+			'Unknown type [\\\\ITRocks\Reflect\Tests\Type\PHPStan_Parser_Test]'
+			. ' into [\\\\ITRocks\Reflect\Tests\Type\PHPStan_Parser_Test] position 0'
+		);
+		self::$parser->parse('\\\\' . __CLASS__);
 	}
 
 }
