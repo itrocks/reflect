@@ -7,7 +7,6 @@ use ITRocks\Reflect\Type\Interface\Single;
 use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\PHP\Union;
-use ITRocks\Reflect\Type\Undefined;
 
 class Parser // phpcs:ignore
 {
@@ -23,6 +22,16 @@ class Parser // phpcs:ignore
 	//----------------------------------------------------------------------------------------- MATCH
 	/** @var array<string,string> */
 	protected const MATCH = ['<' => '>', '(' => ')', '{' => '}'];
+
+	//---------------------------------------------------------------------------------------- OPENER
+	protected const OPENER = 0;
+
+	//------------------------------------------------------------------------------------- SEPARATOR
+	protected const SEPARATOR = 1;
+
+	//------------------------------------------------------------------------------------ SEPARATORS
+	/** @var string */
+	protected const SEPARATORS = '?|&,<({})>';
 
 	//---------------------------------------------------------------------------------------- SINGLE
 	/** @var non-empty-list<string> */
@@ -59,13 +68,12 @@ class Parser // phpcs:ignore
 	/** @throws Exception */
 	public function parse(string $source) : Reflection_Type
 	{
-		$depth      = 0;
-		$depths     = static::DEPTHS;
-		$length     = strlen($source);
-		$openers    = [$depth => ''];
-		$position   = 0;
-		$separators = '?|&,<({})>';
-		$type       = '';
+		$depth    = 0;
+		/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+		$depths   = [0 => ['', '']];
+		$length   = strlen($source);
+		$position = 0;
+		$type     = '';
 		/** @var non-empty-list<list<Reflection_Type|string>> $types */
 		$types = [$depth => []];
 		$this->allows_null = false;
@@ -78,7 +86,7 @@ class Parser // phpcs:ignore
 					break;
 				}
 				$char = $source[$position];
-				if (!str_contains($separators, $char)) {
+				if (!str_contains(self::SEPARATORS, $char)) {
 					throw new Exception(
 						"Bad character [$char] after string literal [$type] into [$source] position " . $position,
 						Exception::BAD_CHARACTER_IN_STRING_LITERAL
@@ -86,7 +94,7 @@ class Parser // phpcs:ignore
 				}
 				$type = '"' . $type;
 			}
-			while (!str_contains($separators, $char)) {
+			while (!str_contains(self::SEPARATORS, $char)) {
 				$type .= $char;
 				$position ++;
 				if ($position === $length) {
@@ -108,118 +116,100 @@ class Parser // phpcs:ignore
 					);
 				}
 			}
-			if (str_contains('|&,', $separator)) {
-				if ($separator !== $openers[$depth]) {
-					if (($openers[$depth] !== '') && str_contains('|&,', $openers[$depth])) {
-						// higher priority : enter next depth
-						if (strpos('|&,', $separator) > strpos('|&,', $openers[$depth])) {
-							$depth ++;
-							$types[$depth] = [];
-						}
-						// lower priority
-						else {
-							// back to previous depth
-							if (($depth > 0) && ($separator === $openers[$depth - 1])) {
-								$type = $this->parseType(
-									$type,
-									$types,
-									$openers,
-									$source,
-									$position // @phpstan-ignore-line $position is int
-								);
-								array_pop($openers);
-								array_pop($types);
-								$depth --;
-								$types[$depth][] = $type;
+			$separator_level = strpos('|&,', $separator);
+			if ($separator_level !== false) {
+				$previous_separator = $depths[$depth][self::SEPARATOR];
+				if ($separator !== $previous_separator) {
+					if ($previous_separator !== '') {
+						$previous_separator_level = strpos('|&,', $previous_separator);
+						if ($previous_separator_level !== false) {
+							// higher priority : enter next depth
+							if ($separator_level > $previous_separator_level) {
+								$depth ++;
+								/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+								$depths[$depth] = ['', $separator];
+								$types[$depth]  = [];
 							}
-							// lower priority : current depth goes next and closes
+							// lower priority
 							else {
-								$types[$depth] = [$this->parseType(
-									$type,
-									$types,
-									$openers,
-									$source,
-									$position // @phpstan-ignore-line $position is int
-								)];
+								// back to previous depth
+								if (($depth > 0) && ($separator === $depths[$depth - 1][self::SEPARATOR])) {
+
+									$type = $this->parseType(
+										array_pop($depths), array_pop($types), $type, $source,
+										$position // @phpstan-ignore-line $position is int
+									);
+									$depth --;
+									$types[$depth][] = $type;
+								}
+								// lower priority : current depth goes next and closes
+								else {
+									$types[$depth] = [
+										$this->parseType(
+											end($depths), end($types), $type, $source,
+											$position // @phpstan-ignore-line $position is int
+										)
+									];
+								}
+								/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+								$depths[$depth][self::SEPARATOR] = $separator;
+								$position ++;
+								$type = '';
+								continue;
 							}
-							$openers[$depth] = $separator;
-							$type = '';
-							$position ++;
-							continue;
 						}
 					}
-					$openers[$depth] = $separator;
+					/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+					$depths[$depth][self::SEPARATOR] = $separator;
 				}
 				$types[$depth][] = $type;
-				$type = '';
 				$position ++;
+				$type = '';
 				continue;
 			}
 			if (str_contains('<({', $separator)) {
-				$depths[$separator] ++;
-				$type .= $separator;
 				$depth ++;
-				$openers[$depth] = $separator;
-				$types[$depth]   = [$type];
+				/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+				$depths[$depth] = [$separator, ''];
+				$types[$depth]  = [$type];
 				$position ++;
 				$type = '';
 				continue;
 			}
-			/** @var non-empty-list<list<Reflection_Type|string>> $types */
-			/** @var non-empty-string $type */
 			if (str_contains('>)}', $separator)) {
-				$depths[$separator] --;
-				$depth --;
-				if (($depth < 0) || ($depths[$separator] < 0)) {
+				if ($depth === 0) {
 					throw new Exception(
 						"Bad closing character [$separator] into [$source] position " . $position,
 						Exception::BAD_CLOSING_CHARACTER
 					);
 				}
-				$position ++;
-				$types[] = [$this->parseComplexType(
-					$type . $openers[$depth + 1],
-					$types[$depth + 1],
-					$source,
+				$depth --;
+				$types[$depth][] = $this->parseType(
+					array_pop($depths), array_pop($types), $type, $source,
 					$position // @phpstan-ignore-line $position is int
-				)];
-				array_pop($openers);
-				array_pop($types);
+				);
+				$position ++;
+				$type = '';
 				continue;
 			}
 			$position ++;
 		}
-		do {
-			$type = $this->parseType(
-				$type,
-				$types,
-				$openers,
-				$source,
-				$position // @phpstan-ignore-line $position is int
-			);
-			array_pop($openers);
-			array_pop($types);
-		}
-		while ($types !== []);
-
-		return $type;
-	}
-
-	//------------------------------------------------------------------------------ parseComplexType
-	/**
-	 * @param non-empty-string $type
-	 * @param list<Reflection_Type|string> $types
-	 * @throws Exception
-	 */
-	protected function parseComplexType(string $type, array $types, string $source, int $position)
-		: Reflection_Type
-	{
-		foreach ($types as $key => $sub_type) {
-			if (is_string($sub_type)) {
-				$types[$key] = $this->parseSingleType($sub_type, $source, $position);
+		while ($depths !== []) {
+			/** @var non-empty-list<list<Reflection_Type|string>> $types */
+			if (($type === '') && (count(end($types)) === 1)) {
+				array_pop($depths);
+				$type = array_pop($types)[0];
+			}
+			else {
+				$type = $this->parseType(
+					array_pop($depths), array_pop($types), $type, $source,
+					$position // @phpstan-ignore-line $position is int
+				);
 			}
 		}
-		return new Undefined($this->reflection);
+
+		/** @var Reflection_Type $type */
+		return $type;
 	}
 
 	//------------------------------------------------------------------------------- parseSingleType
@@ -240,7 +230,7 @@ class Parser // phpcs:ignore
 			return new Named($type, $this->reflection, $this->allows_null);
 		}
 		if (str_starts_with($type, '"')) {
-			return new String_Literal(substr($type, 1), $this->allows_null);
+			return new String_Literal(substr($type, 1), $this->reflection, $this->allows_null);
 		}
 		if (str_contains($type, '[')) {
 			$dimensions = 0;
@@ -274,8 +264,8 @@ class Parser // phpcs:ignore
 				throw Exception::badNumericLiteral($type, $source, $position - strlen($type));
 			}
 			return str_contains($type, '.')
-				? new Float_Literal((float)$type, $this->allows_null)
-				: new Int_Literal((int)$type, $this->allows_null);
+				? new Float_Literal((float)$type, $this->reflection, $this->allows_null)
+				: new Int_Literal((int)$type, $this->reflection, $this->allows_null);
 		}
 		throw new Exception(
 			"Unknown type [$type] into [$source] position " . ($position - strlen($type)),
@@ -326,24 +316,24 @@ class Parser // phpcs:ignore
 
 	//------------------------------------------------------------------------------------- parseType
 	/**
-	 * @param array<non-negative-int,list<Reflection_Type|string>> $types
-	 * @param array<non-negative-int,string>                       $openers
-	 * @param non-negative-int                                     $position
+	 * @param array{''|key-of<self::MATCH>,''|'|'|'&'|','} $depth
+	 * @param list<Reflection_Type|string>                 $types
+	 * @param non-negative-int                             $position
 	 * @throws Exception
 	 */
 	protected function parseType(
-		Reflection_Type|string $type, array $types, array $openers, string $source, int $position
+		array $depth, array $types, Reflection_Type|string $type, string $source, int $position
 	) : Reflection_Type
 	{
 		$single_type = is_string($type)
 			? $this->parseSingleType($type, $source, $position)
 			: $type;
-		$types = end($types);
-		if ($types === false) {
-			$types = [];
-		}
 		if ($types === []) {
 			return $single_type;
+		}
+		[$opener, $separator] = $depth;
+		if (($opener !== '') && str_contains('<{(', $opener)) {
+			$type = array_shift($types);
 		}
 		foreach ($types as $key => $sub_type) {
 			if (is_string($sub_type)) {
@@ -352,11 +342,20 @@ class Parser // phpcs:ignore
 		}
 		/** @var non-empty-list<Reflection_Type> $types */
 		$types[] = $single_type;
-		return match(end($openers)) {
-			'|' => new Union($types, $this->reflection, $this->allows_null),
-			'&' => new Intersection($types, $this->reflection, $this->allows_null),
-			default => throw new Exception('Bad type')
-		};
+		if ($opener === '') {
+			if ($separator === '|') {
+				return new Union($types, $this->reflection, $this->allows_null);
+			}
+			elseif ($separator === '&') {
+				return new Intersection($types, $this->reflection, $this->allows_null);
+			}
+		}
+		if ($opener === '(') {
+			if (in_array($type, ['callable', 'Closure', '\Closure'], true)) {
+				return new Call($type, $types, $this->reflection, $this->allows_null);
+			}
+		}
+		throw new Exception('Bad type');
 	}
 
 }

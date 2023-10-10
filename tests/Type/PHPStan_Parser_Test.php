@@ -2,9 +2,11 @@
 namespace ITRocks\Reflect\Tests\Type;
 
 use ITRocks\Reflect\Reflection_Property;
+use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\PHP\Union;
+use ITRocks\Reflect\Type\PHPStan\Call;
 use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
@@ -154,6 +156,34 @@ class PHPStan_Parser_Test // phpcs:ignore
 			$type = self::$parser->parse($name);
 			self::assertInstanceOf(Named::class, $type);
 			self::assertEquals($name, $type->getName());
+		}
+	}
+
+	//---------------------------------------------------------------------------------- testCallable
+	/**
+	 * @param non-negative-int $key
+	 * @param class-string     $class
+	 * @param list<string>     $types
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'callable',             Named::class, 'callable', []])]
+	#[TestWith([0, 'callable(int)',        Call::class, 'callable', ['int']])]
+	#[TestWith([0, 'Closure(int)',         Call::class, 'Closure', ['int']])]
+	#[TestWith([0, '\Closure(int,string)', Call::class, '\Closure', ['int', 'string']])]
+	public function testCallable(int $key, string $source, string $class, string $name, array $types)
+		: void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf($class, $type, "data set #$key");
+		if ($type instanceof Named) {
+			self::assertEquals($name, $type->getName(), "data set #$key");
+		}
+		if ($type instanceof Call) {
+			$actual_types = array_map(
+				fn(Reflection_Type $type) => ($type instanceof Named) ? $type->getName() : get_class($type),
+				$type->getTypes()
+			);
+			self::assertEquals($types, $actual_types, "data set #$key");
 		}
 	}
 
