@@ -9,7 +9,7 @@ use ITRocks\Reflect\Tests\Data\C;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 
-class Instantiates_Test extends TestCase
+class Instantiate_Test extends TestCase
 {
 
 	//----------------------------------------------------------------------------- testNewReflection
