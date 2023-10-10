@@ -2,7 +2,6 @@
 namespace ITRocks\Reflect\Tests\Type;
 
 use ITRocks\Reflect\Reflection_Property;
-use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\PHP\Union;
@@ -11,6 +10,7 @@ use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
+use ITRocks\Reflect\Type\PHPStan\Parameter;
 use ITRocks\Reflect\Type\PHPStan\Parser;
 use ITRocks\Reflect\Type\PHPStan\String_Literal;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -167,9 +167,9 @@ class PHPStan_Parser_Test // phpcs:ignore
 	 * @throws Exception
 	 */
 	#[TestWith([0, 'callable',             Named::class, 'callable', []])]
-	#[TestWith([0, 'callable(int)',        Call::class, 'callable', ['int']])]
-	#[TestWith([0, 'Closure(int)',         Call::class, 'Closure', ['int']])]
-	#[TestWith([0, '\Closure(int,string)', Call::class, '\Closure', ['int', 'string']])]
+	#[TestWith([1, 'callable(int)',        Call::class, 'callable', ['int']])]
+	#[TestWith([2, 'Closure(int)',         Call::class, 'Closure', ['int']])]
+	#[TestWith([3, '\Closure(int,string)', Call::class, '\Closure', ['int', 'string']])]
 	public function testCallable(int $key, string $source, string $class, string $name, array $types)
 		: void
 	{
@@ -180,11 +180,53 @@ class PHPStan_Parser_Test // phpcs:ignore
 		}
 		if ($type instanceof Call) {
 			$actual_types = array_map(
-				fn(Reflection_Type $type) => ($type instanceof Named) ? $type->getName() : get_class($type),
-				$type->getTypes()
+				fn(Parameter $parameter) => ($parameter->type instanceof Named)
+					? $parameter->type->getName()
+					: get_class($parameter->type),
+				$type->getParameters()
 			);
 			self::assertEquals($types, $actual_types, "data set #$key");
 		}
+	}
+
+	//------------------------------------------------------------------------ testCallableParameters
+	/**
+	 * @param non-negative-int                          $key
+	 * @param list<array{string,bool,bool,string,bool}> $expect
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'callable(string $name)', [
+		[Named::class, 'string', false, false, 'name', false]
+	]])]
+	#[TestWith([1, 'callable(float $n1, int $n2)', [
+		[Named::class, 'float', false, false, 'n1', false],
+		[Named::class, 'int', false, false, 'n2', false]
+	]])]
+	#[TestWith([2, 'callable(float, int...)', [
+		[Named::class, 'float', false, false, '', false],
+		[Named::class, 'int', true, false, '', false]
+	]])]
+	#[TestWith([3, 'callable(int &, int $n, int=)', [
+		[Named::class, 'int', false, true, '', false],
+		[Named::class, 'int', false, false, 'n', false],
+		[Named::class, 'int', false, false, '', true]
+	]])]
+	public function testCallableParameters(int $key, string $source, array $expect) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Call::class, $type, "data set #$key");
+		$actual = [];
+		foreach ($type->getParameters() as $parameter) {
+			$actual[] = [
+				get_class($parameter->type),
+				($parameter->type instanceof Named) ? $parameter->type->getName() : '-',
+				$parameter->variadic,
+				$parameter->reference,
+				$parameter->name,
+				$parameter->optional
+			];
+		}
+		self::assertEquals($expect, $actual, "data set #$key");
 	}
 
 	//---------------------------------------------------------------------------- testClassNamedType
@@ -254,13 +296,15 @@ class PHPStan_Parser_Test // phpcs:ignore
 		0, 'int|string', Union::class, ['int' => Named::class, 'string' => Named::class]
 	])]
 	#[TestWith([
-		1, 'int|string|A\C', Union::class, ['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
+		1, 'int|string|A\C', Union::class,
+		['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
 	])]
 	#[TestWith([
 		2, 'int&string', Intersection::class, ['int' => Named::class, 'string' => Named::class]
 	])]
 	#[TestWith([
-		3, 'int&string&A\C', Intersection::class, ['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
+		3, 'int&string&A\C', Intersection::class,
+		['int' => Named::class, 'string' => Named::class, 'A\C' => Named::class]
 	])]
 	public function testMultiple(int $key, string $source, string $multiple_class, array $expect)
 		: void

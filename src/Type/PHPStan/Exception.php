@@ -13,7 +13,8 @@ class Exception extends ReflectionException
 	/** @var int */ const BAD_CLOSING_CHARACTER             = 105;
 	/** @var int */ const BAD_START_SEPARATOR               = 106;
 	/** @var int */ const MISSING_TYPE                      = 107;
-	/** @var int */ const UNKNOWN_TYPE                      = 108;
+	/** @var int */ const UNEXPECTED_PARAMETER              = 108;
+	/** @var int */ const UNKNOWN_TYPE                      = 109;
 
 	//----------------------------------------------------------------------------- badNumericLiteral
 	public static function badNumericLiteral(string $type_string, string $source, int $type_position)

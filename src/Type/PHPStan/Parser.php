@@ -103,6 +103,11 @@ class Parser // phpcs:ignore
 				$char = $source[$position];
 			}
 			$separator = $char;
+			if (($separator === '&') && str_ends_with($type, ' ')) {
+				$type .= $char;
+				$position ++;
+				continue;
+			}
 			if ($type === '') {
 				if ($separator === '?') {
 					$this->allows_null = true;
@@ -134,7 +139,6 @@ class Parser // phpcs:ignore
 							else {
 								// back to previous depth
 								if (($depth > 0) && ($separator === $depths[$depth - 1][self::SEPARATOR])) {
-
 									$type = $this->parseType(
 										array_pop($depths), array_pop($types), $type, $source,
 										$position // @phpstan-ignore-line $position is int
@@ -214,25 +218,47 @@ class Parser // phpcs:ignore
 
 	//------------------------------------------------------------------------------- parseSingleType
 	/** @throws Exception */
-	protected function parseSingleType(string $type, string $source, int $position) : Single
+	protected function parseSingleType(string $type, string $source, int $position) : Parameter|Single
 	{
+		$type = trim($type);
 		if ($type === '') {
 			throw new Exception(
 				"Missing type into [$source] position " . $position,
 				Exception::MISSING_TYPE
 			);
 		}
+		$is_variadic  = strpos($type, '...');
+		$is_reference = strpos($type, '&');
+		$has_label    = strpos($type, '$');
+		$is_optional  = str_ends_with($type, '=');
+		if ($is_optional || (bool)$is_reference || (bool)$is_variadic || (bool)$has_label) {
+			$parameter = [
+				(bool)$is_variadic,
+				(bool)$is_reference,
+				(bool)$has_label ? rtrim(substr($type, (int)$has_label + 1), ' =') : '',
+				$is_optional
+			];
+			$type = rtrim(match(true) {
+				(bool)$is_variadic  => substr($type, 0, (int)$is_variadic),
+				(bool)$is_reference => substr($type, 0, (int)$is_reference),
+				(bool)$has_label    => substr($type, 0, (int)$has_label),
+				default             => substr($type, 0, -1)
+			});
+		}
+		else {
+			$parameter = null;
+		}
 		if (
 			in_array($type, static::BOTTOM, true)
 			|| in_array($type, static::SINGLE, true)
 			|| $this->isClassName($type)
 		) {
-			return new Named($type, $this->reflection, $this->allows_null);
+			$type = new Named($type, $this->reflection, $this->allows_null);
 		}
-		if (str_starts_with($type, '"')) {
-			return new String_Literal(substr($type, 1), $this->reflection, $this->allows_null);
+		elseif (str_starts_with($type, '"')) {
+			$type = new String_Literal(substr($type, 1), $this->reflection, $this->allows_null);
 		}
-		if (str_contains($type, '[')) {
+		elseif (str_contains($type, '[')) {
 			$dimensions = 0;
 			while (str_ends_with($type, '[]')) {
 				$dimensions ++;
@@ -252,25 +278,33 @@ class Parser // phpcs:ignore
 					Exception::BAD_CHARACTER_IN_ARRAY_DEFINITION
 				);
 			}
-			return Collection::ofDimensions(
-				$this->parseSingleType($type, $source, $position - $dimensions * 2),
-				$dimensions,
-				$this->reflection,
-				$this->allows_null
-			);
+			$type = $this->parseSingleType($type, $source, $position - $dimensions * 2);
+			if ($type instanceof Parameter) {
+				throw new Exception(
+					"Unexpected parameter [$type] into [$source] position " . $position,
+					Exception::UNEXPECTED_PARAMETER
+				);
+			}
+			$type = Collection::ofDimensions($type, $dimensions, $this->reflection, $this->allows_null);
 		}
-		if (str_contains('0123456789.-', $type[0])) {
+		elseif (str_contains('0123456789.-', $type[0])) {
 			if (!(bool)preg_match('/^-?([0-9]*[\\\\.])?[0-9]+$/', $type)) {
 				throw Exception::badNumericLiteral($type, $source, $position - strlen($type));
 			}
-			return str_contains($type, '.')
+			$type = str_contains($type, '.')
 				? new Float_Literal((float)$type, $this->reflection, $this->allows_null)
 				: new Int_Literal((int)$type, $this->reflection, $this->allows_null);
 		}
-		throw new Exception(
-			"Unknown type [$type] into [$source] position " . ($position - strlen($type)),
-			Exception::UNKNOWN_TYPE
-		);
+		if (is_string($type)) {
+			throw new Exception(
+				"Unknown type [$type] into [$source] position " . ($position - strlen($type)),
+				Exception::UNKNOWN_TYPE
+			);
+		}
+		if ($parameter !== null) {
+			return new Parameter($type, $parameter[0], $parameter[1], $parameter[2], $parameter[3]);
+		}
+		return $type;
 	}
 
 	//---------------------------------------------------------------------------- parseStringLiteral
@@ -332,9 +366,9 @@ class Parser // phpcs:ignore
 			return $single_type;
 		}
 		[$opener, $separator] = $depth;
-		if (($opener !== '') && str_contains('<{(', $opener)) {
-			$type = array_shift($types);
-		}
+		$opener_type = (($opener !== '') && str_contains('<{(', $opener))
+			? array_shift($types)
+			: '';
 		foreach ($types as $key => $sub_type) {
 			if (is_string($sub_type)) {
 				$types[$key] = $this->parseSingleType($sub_type, $source, $position);
@@ -351,8 +385,14 @@ class Parser // phpcs:ignore
 			}
 		}
 		if ($opener === '(') {
-			if (in_array($type, ['callable', 'Closure', '\Closure'], true)) {
-				return new Call($type, $types, $this->reflection, $this->allows_null);
+			if (in_array($opener_type, ['callable', 'Closure', '\Closure'], true)) {
+				foreach ($types as $key => $parameter_type) {
+					if (!($parameter_type instanceof Parameter)) {
+						$types[$key] = new Parameter($parameter_type, false, false, '', false);
+					}
+				}
+				/** @var non-empty-list<Parameter> $types */
+				return new Call($opener_type, $types, $this->reflection, $this->allows_null);
 			}
 		}
 		throw new Exception('Bad type');
