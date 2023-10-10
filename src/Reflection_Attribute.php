@@ -32,7 +32,7 @@ use ReflectionProperty;
  */
 class Reflection_Attribute implements Interface\Reflection_Attribute
 {
-	use Instantiates;
+	use Instantiate;
 
 	//------------------------------------------------------------------------------------ $arguments
 	/** @var ?list<mixed> */

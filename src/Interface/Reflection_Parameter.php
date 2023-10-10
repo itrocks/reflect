@@ -2,18 +2,19 @@
 namespace ITRocks\Reflect\Interface;
 
 use ReflectionException;
-use Stringable;
 
 /** @template Class of object */
-interface Reflection_Parameter extends Reflection, Stringable
+interface Reflection_Parameter extends Reflection
 {
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param array{class-string<Class>|Class,string} $method
+	 * @noinspection PhpDocSignatureInspection Argument type does not match the declared Class is object
+	 * @param array{class-string<Class>|Class,string}|Class|string $function
+	 * @param non-negative-int|string $param
 	 * @throws ReflectionException
 	 */
-	public function __construct(array $method, int|string $param);
+	public function __construct(array|object|string $function, int|string $param);
 
 	//-------------------------------------------------------------------------- getDeclaringFunction
 	/** @return Reflection_Method<Class> */

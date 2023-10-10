@@ -15,16 +15,18 @@ use ReturnTypeWillChange;
 class Reflection_Parameter extends ReflectionParameter implements Interface\Reflection_Parameter
 {
 	use Attribute\Reflection_Parameter_Has;
-	use Instantiates;
+	use Instantiate;
 
 	//----------------------------------------------------------------------------------- __construct
 	/**
-	 * @param array{class-string<Class>|Class,string} $method
+	 * @noinspection PhpDocSignatureInspection Argument type does not match the declared Class is object
+	 * @param array{class-string<Class>|Class,string}|Class|string $function
+	 * @param non-negative-int|string $param
 	 * @throws ReflectionException
 	 */
-	public function __construct(array $method, int|string $param)
+	public function __construct(array|object|string $function, int|string $param)
 	{
-		parent::__construct($method, $param);
+		parent::__construct($function, $param);
 	}
 
 	//------------------------------------------------------------------------------------ __toString

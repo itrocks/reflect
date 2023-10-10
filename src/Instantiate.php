@@ -3,12 +3,12 @@ namespace ITRocks\Reflect;
 
 use ReflectionException;
 
-trait Instantiates
+trait Instantiate
 {
 
 	//--------------------------------------------------------------------------------- newReflection
 	/**
-	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared C of object
 	 * @param class-string<C>|C $object_or_class
 	 * @return ($member is null ? Reflection_Class<C> : Reflection_Method<C>|Reflection_Property<C>)
 	 * @template C of object
@@ -27,7 +27,7 @@ trait Instantiates
 
 	//---------------------------------------------------------------------------- newReflectionClass
 	/**
-	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared C of object
 	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Class<C>
 	 * @template C of object
@@ -40,7 +40,7 @@ trait Instantiates
 
 	//------------------------------------------------------------------------- newReflectionConstant
 	/**
-	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared C of object
 	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Class_Constant<C>
 	 * @template C of object
@@ -53,7 +53,7 @@ trait Instantiates
 
 	//--------------------------------------------------------------------------- newReflectionMethod
 	/**
-	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared C of object
 	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Method<C>
 	 * @template C of object
@@ -67,12 +67,14 @@ trait Instantiates
 
 	//------------------------------------------------------------------------ newReflectionParameter
 	/**
-	 * @param array{class-string<C>|C,string} $function
+	 * @noinspection PhpDocSignatureInspection $function Argument type does not match the declared C of object
+	 * @param array{class-string<C>|C,string}|C|string $function
+	 * @param non-negative-int|string                  $param
 	 * @return Reflection_Parameter<C>
 	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionParameter(array $function, int|string $param)
+	public static function newReflectionParameter(array|object|string $function, int|string $param)
 		: Reflection_Parameter
 	{
 		return new Reflection_Parameter($function, $param);
@@ -80,7 +82,7 @@ trait Instantiates
 
 	//------------------------------------------------------------------------- newReflectionProperty
 	/**
-	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared
+	 * @noinspection PhpDocSignatureInspection $object_or_class Argument type does not match the declared C of object
 	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Property<C>
 	 * @template C of object

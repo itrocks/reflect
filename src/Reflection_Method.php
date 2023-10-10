@@ -15,7 +15,7 @@ use ReturnTypeWillChange;
 class Reflection_Method extends ReflectionMethod implements Interface\Reflection_Method
 {
 	use Attribute\Reflection_Method_Has;
-	use Instantiates;
+	use Instantiate;
 
 	//---------------------------------------------------------------------------------------- $cache
 	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'final_class'?:class-string<Class>,'final_class_raw':class-string|object|string,'parent'?:static|null} */

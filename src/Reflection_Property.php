@@ -14,7 +14,7 @@ use ReturnTypeWillChange;
 class Reflection_Property extends ReflectionProperty implements Interface\Reflection_Property
 {
 	use Attribute\Reflection_Property_Has;
-	use Instantiates;
+	use Instantiate;
 
 	//---------------------------------------------------------------------------------------- $cache
 	/** @var array{'declaring_trait'?:Reflection_Class<object>,'doc_comment'?:array<int<1,max>,string|false>,'parent'?:static|null} */

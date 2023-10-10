@@ -14,7 +14,7 @@ use ReflectionProperty;
 class Reflection_Class extends ReflectionClass implements Interface\Reflection_Class
 {
 	use Attribute\Reflection_Class_Has;
-	use Instantiates;
+	use Instantiate;
 
 	//---------------------------------------------------------------------------------------- $cache
 	/** @var array{'doc_comment'?:array<int<1,max>,string|false>,'interface_names'?:array<int<0,max>,list<class-string>>,'namespace_use'?:array<string,string>,'tokens'?:list<array{int,string,int}|string>} */

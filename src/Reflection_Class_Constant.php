@@ -12,7 +12,7 @@ class Reflection_Class_Constant extends ReflectionClassConstant
 	implements Interface\Reflection_Class_Constant
 {
 	use Attribute\Reflection_Class_Constant_Has;
-	use Instantiates;
+	use Instantiate;
 
 	//---------------------------------------------------------------------------------- $final_class
 	/** @var class-string<Class> */

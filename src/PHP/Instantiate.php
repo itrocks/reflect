@@ -1,59 +1,14 @@
 <?php
-namespace ITRocks\Reflect\Interface;
+namespace ITRocks\Reflect\PHP;
 
-use ReflectionAttribute;
+use ITRocks\Reflect\Interface\Reflection_Class_Constant;
+use ITRocks\Reflect\Interface\Reflection_Method;
+use ITRocks\Reflect\Interface\Reflection_Parameter;
+use ITRocks\Reflect\Interface\Reflection_Property;
 use ReflectionException;
-use Stringable;
 
-interface Reflection extends Stringable
+trait Instantiate
 {
-
-	//------------------------------------------------------------------------- DOC_COMMENT_AGGREGATE
-	public const DOC_COMMENT_AGGREGATE = "\t *IN ";
-
-	//-------------------------------------------------------------------------------- $filter values
-	public const T_ALL        = self::T_INHERIT;
-	public const T_EXTENDS    = 1024;
-	public const T_IMPLEMENTS = 2048;
-	public const T_INHERIT    = self::T_EXTENDS | self::T_IMPLEMENTS | self::T_USE;
-	public const T_LOCAL      = 0;
-	public const T_USE        = 4096;
-
-	//---------------------------------------------------------------------------------- getAttribute
-	/**
-	 * @param class-string<A> $name
-	 * @return ?Reflection_Attribute<$this,A>
-	 * @template A of object
-	 */
-	public function getAttribute(string $name) : ?Reflection_Attribute;
-
-	//------------------------------------------------------------------------- getAttributeInstances
-	/**
-	 * @param class-string<A>|null $name
-	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
-	 * @return list<A>
-	 * @template A of object
-	 * @throws ReflectionException
-	 */
-	public function getAttributeInstances(string $name = null, int $flags = self::T_LOCAL) : array;
-
-	//--------------------------------------------------------------------------------- getAttributes
-	/**
-	 * @param class-string<A>|null $name
-	 * @param int-mask-of<ReflectionAttribute::IS_INSTANCEOF|static::T_*> $flags
-	 * @return list<Reflection_Attribute<$this,($name is null ? object : A)>>
-	 * @template A of object
-	 */
-	public function getAttributes(string $name = null, int $flags = self::T_LOCAL) : array;
-
-	//--------------------------------------------------------------------------------- getDocComment
-	/** @param int-mask-of<self::T_*> $filter */
-	public function getDocComment(
-		int $filter = self::T_LOCAL, bool $cache = true, bool $locate = false
-	) : string|false;
-
-	//--------------------------------------------------------------------------------------- getName
-	public function getName() : ?string;
 
 	//--------------------------------------------------------------------------------- newReflection
 	/**
@@ -64,7 +19,11 @@ interface Reflection extends Stringable
 	 * @throws ReflectionException
 	 */
 	public static function newReflection(object|string $object_or_class, string $member = null)
-		: Reflection_Class|Reflection_Method|Reflection_Property;
+		: Reflection_Class|Reflection_Method|Reflection_Property
+	{
+		// TODO: Implement newReflection() method.
+		throw new ReflectionException('TODO: Implement newReflection() method.');
+	}
 
 	//---------------------------------------------------------------------------- newReflectionClass
 	/**
@@ -74,7 +33,11 @@ interface Reflection extends Stringable
 	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionClass(object|string $object_or_class) : Reflection_Class;
+	public static function newReflectionClass(object|string $object_or_class) : Reflection_Class
+	{
+		// TODO: Implement newReflectionClass() method.
+		throw new ReflectionException('TODO: Implement newReflectionClass() method.');
+	}
 
 	//------------------------------------------------------------------------- newReflectionConstant
 	/**
@@ -82,9 +45,14 @@ interface Reflection extends Stringable
 	 * @param class-string<C>|C $object_or_class
 	 * @return Reflection_Class_Constant<C>
 	 * @template C of object
+	 * @throws ReflectionException
 	 */
 	public static function newReflectionConstant(object|string $object_or_class, string $constant)
-		: Reflection_Class_Constant;
+		: Reflection_Class_Constant
+	{
+		// TODO: Implement newReflectionClass() method.
+		throw new ReflectionException('TODO: Implement newReflectionClassConstant() method.');
+	}
 
 	//--------------------------------------------------------------------------- newReflectionMethod
 	/**
@@ -95,7 +63,11 @@ interface Reflection extends Stringable
 	 * @throws ReflectionException
 	 */
 	public static function newReflectionMethod(object|string $object_or_class, string $method)
-		: Reflection_Method;
+		: Reflection_Method
+	{
+		// TODO: Implement newReflectionMethod() method.
+		throw new ReflectionException('TODO: Implement newReflectionMethod() method.');
+	}
 
 	//------------------------------------------------------------------------ newReflectionParameter
 	/**
@@ -106,8 +78,12 @@ interface Reflection extends Stringable
 	 * @template C of object
 	 * @throws ReflectionException
 	 */
-	public static function newReflectionParameter(array|object|string $function, int|string $param)
-		: Reflection_Parameter;
+	public static function newReflectionParameter(object|array|string $function, int|string $param)
+		: Reflection_Parameter
+	{
+		// TODO: Implement newReflectionParameter() method.
+		throw new ReflectionException('TODO: Implement newReflectionParameter() method.');
+	}
 
 	//------------------------------------------------------------------------- newReflectionProperty
 	/**
@@ -118,9 +94,10 @@ interface Reflection extends Stringable
 	 * @throws ReflectionException
 	 */
 	public static function newReflectionProperty(object|string $object_or_class, string $property)
-		: Reflection_Property;
-
-	//------------------------------------------------------------------------------------------ path
-	public function path() : string;
+		: Reflection_Property
+	{
+		// TODO: Implement newReflectionProperty() method.
+		throw new ReflectionException('TODO: Implement newReflectionProperty() method.');
+	}
 
 }
