@@ -31,7 +31,7 @@ class Parser // phpcs:ignore
 
 	//------------------------------------------------------------------------------------ SEPARATORS
 	/** @var string */
-	protected const SEPARATORS = '?|&,<({})>';
+	protected const SEPARATORS = '?|&:,<({})>';
 
 	//---------------------------------------------------------------------------------------- SINGLE
 	/** @var non-empty-list<string> */
@@ -69,7 +69,7 @@ class Parser // phpcs:ignore
 	public function parse(string $source) : Reflection_Type
 	{
 		$depth    = 0;
-		/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+		/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 		$depths   = [0 => ['', '']];
 		$length   = strlen($source);
 		$position = 0;
@@ -98,6 +98,7 @@ class Parser // phpcs:ignore
 				$type .= $char;
 				$position ++;
 				if ($position === $length) {
+					$type = trim($type);
 					break 2;
 				}
 				$char = $source[$position];
@@ -108,7 +109,8 @@ class Parser // phpcs:ignore
 				$position ++;
 				continue;
 			}
-			if ($type === '') {
+			$type = trim($type);
+			if (($type === '') && ($types[$depth] === [])) {
 				if ($separator === '?') {
 					$this->allows_null = true;
 					$position ++;
@@ -116,22 +118,21 @@ class Parser // phpcs:ignore
 				}
 				if ($separator !== '(') {
 					throw new Exception(
-						"Type cannot start with separator [$separator] into [$source] position " . $position,
-						Exception::BAD_START_SEPARATOR
+						"Missing type into [$source] position " . $position, Exception::MISSING_TYPE
 					);
 				}
 			}
-			$separator_level = strpos('|&,', $separator);
+			$separator_level = strpos('|&:,', $separator);
 			if ($separator_level !== false) {
 				$previous_separator = $depths[$depth][self::SEPARATOR];
 				if ($separator !== $previous_separator) {
 					if ($previous_separator !== '') {
-						$previous_separator_level = strpos('|&,', $previous_separator);
+						$previous_separator_level = strpos('|&:,', $previous_separator);
 						if ($previous_separator_level !== false) {
 							// higher priority : enter next depth
 							if ($separator_level > $previous_separator_level) {
 								$depth ++;
-								/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+								/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 								$depths[$depth] = ['', $separator];
 								$types[$depth]  = [];
 							}
@@ -155,7 +156,7 @@ class Parser // phpcs:ignore
 										)
 									];
 								}
-								/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+								/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 								$depths[$depth][self::SEPARATOR] = $separator;
 								$position ++;
 								$type = '';
@@ -163,17 +164,19 @@ class Parser // phpcs:ignore
 							}
 						}
 					}
-					/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+					/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 					$depths[$depth][self::SEPARATOR] = $separator;
 				}
-				$types[$depth][] = $type;
+				if ($type !== '') {
+					$types[$depth][] = $type;
+				}
 				$position ++;
 				$type = '';
 				continue;
 			}
 			if (str_contains('<({', $separator)) {
 				$depth ++;
-				/** @var non-empty-list<array{''|key-of<self::MATCH>,''|'|'|'&'|','}> $depths */
+				/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 				$depths[$depth] = [$separator, ''];
 				$types[$depth]  = [$type];
 				$position ++;
@@ -220,13 +223,6 @@ class Parser // phpcs:ignore
 	/** @throws Exception */
 	protected function parseSingleType(string $type, string $source, int $position) : Parameter|Single
 	{
-		$type = trim($type);
-		if ($type === '') {
-			throw new Exception(
-				"Missing type into [$source] position " . $position,
-				Exception::MISSING_TYPE
-			);
-		}
 		$is_variadic  = strpos($type, '...');
 		$is_reference = strpos($type, '&');
 		$has_label    = strpos($type, '$');
@@ -287,7 +283,7 @@ class Parser // phpcs:ignore
 			}
 			$type = Collection::ofDimensions($type, $dimensions, $this->reflection, $this->allows_null);
 		}
-		elseif (str_contains('0123456789.-', $type[0])) {
+		elseif (($type !== '') && str_contains('0123456789.-', $type[0])) {
 			if (!(bool)preg_match('/^-?([0-9]*[\\\\.])?[0-9]+$/', $type)) {
 				throw Exception::badNumericLiteral($type, $source, $position - strlen($type));
 			}
@@ -301,7 +297,7 @@ class Parser // phpcs:ignore
 				Exception::UNKNOWN_TYPE
 			);
 		}
-		if ($parameter !== null) {
+		if (isset($parameter)) {
 			return new Parameter($type, $parameter[0], $parameter[1], $parameter[2], $parameter[3]);
 		}
 		return $type;
@@ -350,9 +346,9 @@ class Parser // phpcs:ignore
 
 	//------------------------------------------------------------------------------------- parseType
 	/**
-	 * @param array{''|key-of<self::MATCH>,''|'|'|'&'|','} $depth
-	 * @param list<Reflection_Type|string>                 $types
-	 * @param non-negative-int                             $position
+	 * @param array{''|key-of<self::MATCH>,""|"|"|"&"|":"|","} $depth
+	 * @param list<Reflection_Type|string>                     $types
+	 * @param non-negative-int                                 $position
 	 * @throws Exception
 	 */
 	protected function parseType(
@@ -360,9 +356,9 @@ class Parser // phpcs:ignore
 	) : Reflection_Type
 	{
 		$single_type = is_string($type)
-			? $this->parseSingleType($type, $source, $position)
+			? (($type === '') ? null : $this->parseSingleType($type, $source, $position))
 			: $type;
-		if ($types === []) {
+		if (($types === []) && isset($single_type)) {
 			return $single_type;
 		}
 		[$opener, $separator] = $depth;
@@ -375,13 +371,32 @@ class Parser // phpcs:ignore
 			}
 		}
 		/** @var non-empty-list<Reflection_Type> $types */
-		$types[] = $single_type;
+		if (isset($single_type)) {
+			$types[] = $single_type;
+		}
 		if ($opener === '') {
 			if ($separator === '|') {
 				return new Union($types, $this->reflection, $this->allows_null);
 			}
 			elseif ($separator === '&') {
 				return new Intersection($types, $this->reflection, $this->allows_null);
+			}
+			elseif ($separator === ':') {
+				$return = array_pop($types);
+				while ($types !== []) {
+					$type = array_pop($types);
+					if ($type instanceof Call) {
+						$type->return = $return;
+					}
+					else {
+						throw new Exception(
+							"Unexpected separator [:] into [$source] position " . $position,
+							Exception::UNEXPECTED_SEPARATOR
+						);
+					}
+					$return = $type;
+				}
+				return $return;
 			}
 		}
 		if ($opener === '(') {

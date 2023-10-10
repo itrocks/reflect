@@ -21,7 +21,7 @@ class Reflection_Parameter extends ReflectionParameter implements Interface\Refl
 	/**
 	 * @noinspection PhpDocSignatureInspection Argument type does not match the declared Class is object
 	 * @param array{class-string<Class>|Class,string}|Class|string $function
-	 * @param non-negative-int|string $param
+	 * @param non-negative-int|string                              $param
 	 * @throws ReflectionException
 	 */
 	public function __construct(array|object|string $function, int|string $param)

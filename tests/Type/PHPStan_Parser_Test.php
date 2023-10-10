@@ -94,15 +94,6 @@ class PHPStan_Parser_Test // phpcs:ignore
 		self::$parser->parse('15..19');
 	}
 
-	//------------------------------------------------------------------------- testBadStartSeparator
-	public function testBadStartSeparator() : void
-	{
-		$this->expectException(Exception::class);
-		$this->expectExceptionCode(Exception::BAD_START_SEPARATOR);
-		$this->expectExceptionMessage('Type cannot start with separator [|] into [|int] position 0');
-		self::$parser->parse('|int');
-	}
-
 	//--------------------------------------------------------- testBadStringLiteralBadCharacterAfter
 	public function testBadStringLiteralBadCharacterAfter() : void
 	{
@@ -183,7 +174,7 @@ class PHPStan_Parser_Test // phpcs:ignore
 				fn(Parameter $parameter) => ($parameter->type instanceof Named)
 					? $parameter->type->getName()
 					: get_class($parameter->type),
-				$type->getParameters()
+				$type->parameters
 			);
 			self::assertEquals($types, $actual_types, "data set #$key");
 		}
@@ -211,12 +202,20 @@ class PHPStan_Parser_Test // phpcs:ignore
 		[Named::class, 'int', false, false, 'n', false],
 		[Named::class, 'int', false, false, '', true]
 	]])]
+	#[TestWith([4, 'callable(int &$n, int $n=)', [
+		[Named::class, 'int', false, true, 'n', false],
+		[Named::class, 'int', false, false, 'n', true]
+	]])]
+	#[TestWith([5, 'callable ( callable(int $i) , int ... $n ) ', [
+		[Call::class, 'callable', false, false, '', false],
+		[Named::class, 'int', true, false, 'n', false]
+	]])]
 	public function testCallableParameters(int $key, string $source, array $expect) : void
 	{
 		$type = self::$parser->parse($source);
 		self::assertInstanceOf(Call::class, $type, "data set #$key");
 		$actual = [];
-		foreach ($type->getParameters() as $parameter) {
+		foreach ($type->parameters as $parameter) {
 			$actual[] = [
 				get_class($parameter->type),
 				($parameter->type instanceof Named) ? $parameter->type->getName() : '-',
@@ -227,6 +226,26 @@ class PHPStan_Parser_Test // phpcs:ignore
 			];
 		}
 		self::assertEquals($expect, $actual, "data set #$key");
+	}
+
+	//---------------------------------------------------------------------------- testCallableReturn
+	/**
+	 * @param non-negative-int $key
+	 * @param class-string     $class
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'callable() : void', Named::class, 'void'])]
+	#[TestWith([1, 'callable(int):void', Named::class, 'void'])]
+	#[TestWith([2, 'callable(int):callable(callable(float):callable):int', Call::class, 'callable'])]
+	public function testCallableReturn(int $key, string $source, string $class, string $name) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Call::class, $type, "data set #$key");
+		$return = $type->return;
+		self::assertInstanceOf($class, $return, "data set #$key");
+		if ($return instanceof Named) {
+			self::assertEquals($name, $return->getName(), "data set #$key");
+		}
 	}
 
 	//---------------------------------------------------------------------------- testClassNamedType
@@ -283,6 +302,15 @@ class PHPStan_Parser_Test // phpcs:ignore
 		$type = next($types);
 		self::assertInstanceOf(Named::class, $type);
 		self::assertEquals('Union', $type);
+	}
+
+	//------------------------------------------------------------------------------- testMissingType
+	public function testMissingType() : void
+	{
+		$this->expectException(Exception::class);
+		$this->expectExceptionCode(Exception::MISSING_TYPE);
+		$this->expectExceptionMessage('Missing type into [|int] position 0');
+		self::$parser->parse('|int');
 	}
 
 	//---------------------------------------------------------------------------------- testMultiple
