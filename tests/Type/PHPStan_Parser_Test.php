@@ -14,8 +14,10 @@ use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Mask;
 use ITRocks\Reflect\Type\PHPStan\Int_Range;
+use ITRocks\Reflect\Type\PHPStan\Of;
 use ITRocks\Reflect\Type\PHPStan\Parameter;
 use ITRocks\Reflect\Type\PHPStan\Parser;
+use ITRocks\Reflect\Type\PHPStan\Shape;
 use ITRocks\Reflect\Type\PHPStan\String_Literal;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
@@ -280,24 +282,49 @@ class PHPStan_Parser_Test // phpcs:ignore
 		}
 	}
 
+	//------------------------------------------------------------------------------- testClassString
+	/** @throws Exception */
+	public function testClassString() : void
+	{
+		$type = self::$parser->parse('class-string<\A\B\C>');
+		self::assertInstanceOf(Of::class, $type);
+		$type = $type->type;
+		self::assertInstanceOf(Named::class, $type);
+		self::assertEquals('\A\B\C', $type->getName());
+	}
+
 	//-------------------------------------------------------------------------------- testCollection
 	/**
 	 * @param non-negative-int $key
+	 * @param class-string     $class
 	 * @throws Exception
 	 */
-	#[TestWith([0, 'array<int>', 'array', '', 'int'])]
-	#[TestWith([1, 'non-empty-array<int,string>', 'non-empty-array', 'int', 'string'])]
-	#[TestWith([2, 'list<int<0,max>>', 'list', '', 'int<0,max>'])]
-	#[TestWith([3, 'non-empty-list<Intersection|Union>', 'non-empty-list', '', 'Intersection|Union'])]
+	#[TestWith([0, 'array<int>', 'array', Named::class, 'int'])]
+	#[TestWith([1, 'non-empty-array<int,string>', 'non-empty-array', Named::class, 'string', 'int'])]
+	#[TestWith([2, 'list<int<0,max>>', 'list', Int_Range::class, 'int<0,max>'])]
+	#[TestWith([3, 'non-empty-list<Intersection|Union>', 'non-empty-list', Union::class, 'Intersection|Union'])]
+	#[TestWith([4, 'iterable<Union>', 'iterable', Named::class, 'Union'])]
 	public function testCollection(
-		int $key, string $source, string $name, string $type_key, string $type_type
+		int $key, string $source, string $name, string $class, string $type_type, string $type_key = ''
 	) : void
 	{
 		$type = self::$parser->parse($source);
 		self::assertInstanceOf(Collection::class, $type, "data set #$key");
-		self::assertEquals($name,      $type->getName(), "data set #$key name");
+		self::assertEquals($name, $type->getName(), "data set #$key name");
+		self::assertInstanceOf($class, $type->type, "data set #$key class");
 		self::assertEquals($type_key,  (string)$type->key, "data set #$key key");
 		self::assertEquals($type_type, (string)$type->type, "data set #$key type");
+	}
+
+	//------------------------------------------------------------------------- testConstantNamedType
+	/** @throws Exception */
+	public function testConstantNamedType() : void
+	{
+		foreach (['CONSTANT120', 'PHP_SELF'] as $name) {
+			$type = self::$parser->parse($name);
+			self::assertInstanceOf(Named::class, $type);
+			self::assertEquals($name, $type->getName());
+		}
 	}
 
 	//------------------------------------------------------------------------------ testFloatLiteral
@@ -460,6 +487,26 @@ class PHPStan_Parser_Test // phpcs:ignore
 		}
 	}
 
+	//---------------------------------------------------------------------------------------- testOf
+	/**
+	 * @param non-negative-int $key
+	 * @param class-string     $class
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'key-of<Parser::SEPARATORS>', 'key-of', Class_Constant::class, 'Parser::SEPARATORS'])]
+	#[TestWith([1, 'value-of<Parser::SEPARATORS>', 'value-of', Class_Constant::class, 'Parser::SEPARATORS'])]
+	#[TestWith([2, 'value-of<Enumerable>', 'value-of', Named::class, 'Enumerable'])]
+	public function testOf(
+		int $key, string $source, string $name, string $class, string $type_type
+	) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Of::class, $type, "data set #$key");
+		self::assertEquals($name, $type->getName(), "data set #$key name");
+		self::assertInstanceOf($class, $type->type, "data set #$key class");
+		self::assertEquals($type_type, (string)$type->type, "data set #$key type");
+	}
+
 	//------------------------------------------------------------------------------- testParentheses
 	/**
 	 * @param non-negative-int                                                 $key
@@ -498,6 +545,25 @@ class PHPStan_Parser_Test // phpcs:ignore
 		};
 		$actual = array_merge([get_class($type)], $tidy($type));
 		static::assertEquals($expect, $actual, "data set #$key");
+	}
+
+	//------------------------------------------------------------------------------------- testShape
+	/**
+	 * @param array<string> $values
+	 * @throws Exception
+	 */
+	#[TestWith([0, '\A\B<float,int,string>',   '\A\B',   ['float', 'int', 'string']])]
+	#[TestWith([1, 'array{float,int,string}',  'array',  ['float', 'int', 'string']])]
+	public function testShape(int $key, string $source, string $name, array $values)
+		: void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Shape::class, $type, "data set #$key");
+		self::assertEquals($name, $type->getName(), "data set #$key");
+		foreach ($values as $value_key => $value) {
+			self::assertNotNull($type->types[$value_key] ?? null, "data set #$key key");
+			self::assertEquals($value, $type->types[$value_key], "data set #$key value");
+		}
 	}
 
 	//------------------------------------------------------------------------ testSquareBracketArray

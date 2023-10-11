@@ -15,6 +15,13 @@ class Parser // phpcs:ignore
 	/** @var non-empty-list<string> */
 	protected const BOTTOM = ['never', 'never-return', 'never-returns', 'no-return', 'void'];
 
+	//------------------------------------------------------------------------------------ COLLECTION
+	/** @var non-empty-list<string>  */
+	protected const COLLECTION = [
+		'array', 'class-string', 'iterable', 'key-of', 'list', 'non-empty-array', 'non-empty-list',
+		'value-of'
+	];
+
 	//---------------------------------------------------------------------------------------- DEPTHS
 	/** @var array<string,int> */
 	protected const DEPTHS = ['<' => 0, '(' => 0, '{' => 0];
@@ -88,7 +95,8 @@ class Parser // phpcs:ignore
 				$char = $source[$position];
 				if (!str_contains(self::SEPARATORS, $char)) {
 					throw new Exception(
-						"Bad character [$char] after string literal [$type] into [$source] position " . $position,
+						"Bad character [$char] after string literal [$type] into [$source] position "
+							. $position,
 						Exception::BAD_CHARACTER_IN_STRING_LITERAL
 					);
 				}
@@ -154,7 +162,10 @@ class Parser // phpcs:ignore
 								}
 								// lower priority : current depth goes next and closes
 								else {
-									$opener_type = (($depths[$depth][self::OPENER] === '') || (count($types[$depth]) < 2))
+									$opener_type = (
+										($depths[$depth][self::OPENER] === '')
+										|| (count($types[$depth]) < 2)
+									)
 										? null
 										: $types[$depth][0];
 									$types[$depth] = [
@@ -438,14 +449,6 @@ class Parser // phpcs:ignore
 			}
 		}
 		elseif ($opener === '<') {
-			if (in_array($opener_type, ['array', 'list', 'non-empty-array', 'non-empty-list'], true)) {
-				if (!in_array($separator, ['', ','], true)) {
-					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
-				}
-				$key  = (count($types) > 1) ? reset($types) : null;
-				$type = end($types);
-				return Collection::ofName($opener_type, $type, $this->reflection, $this->allows_null, $key);
-			}
 			if ($opener_type === 'int') {
 				$value0 = ($types[0] instanceof Int_Literal)
 					? $types[0]->value
@@ -467,7 +470,7 @@ class Parser // phpcs:ignore
 				}
 				return new Int_Range($value0, $value1, $this->reflection, $this->allows_null);
 			}
-			elseif ($opener_type === 'int-mask') {
+			if ($opener_type === 'int-mask') {
 				if (!in_array($separator, ['', ','], true)) {
 					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
 				}
@@ -486,7 +489,7 @@ class Parser // phpcs:ignore
 				/** @var list<Class_Constant|Int_Literal|Union> $types */
 				return new Int_Mask($opener_type, $types, $this->reflection, $this->allows_null);
 			}
-			elseif ($opener_type === 'int-mask-of') {
+			if ($opener_type === 'int-mask-of') {
 				foreach ($types as $value) {
 					if (!(($value instanceof Class_Constant) || ($value instanceof Int_Literal))) {
 						throw new Exception(
@@ -498,8 +501,37 @@ class Parser // phpcs:ignore
 				/** @var list<Class_Constant|Int_Literal> $types */
 				return new Int_Mask($opener_type, $types, $this->reflection, $this->allows_null);
 			}
+			if (in_array($opener_type, static::COLLECTION, true)) {
+				if (!in_array($separator, ['', ','], true)) {
+					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
+				}
+				$key  = (count($types) > 1) ? reset($types) : null;
+				$type = end($types);
+				return in_array($opener_type, ['class-string', 'key-of', 'value-of'], true)
+					? new Of($opener_type, $type, $this->reflection, $this->allows_null)
+					: Collection::ofName($opener_type, $type, $this->reflection, $this->allows_null, $key);
+			}
+			if (is_string($opener_type)) {
+				return new Shape($opener_type, $types, $this->reflection, $this->allows_null);
+			}
 		}
-		throw new Exception('Bad type');
+		// @phpstan-ignore-next-line last choice, but I prefer being explicit
+		elseif (($opener === '{') && is_string($opener_type)) {
+			$shape_types = [];
+			foreach ($types as $shape_type) {
+				if ($shape_type instanceof Parameter) {
+					$shape_key = is_numeric($shape_type->name)
+						? (int)$shape_type->name
+						: $shape_type->name;
+					$shape_types[$shape_key] = $shape_type->type;
+				}
+				else {
+					$shape_types[] = $shape_type;
+				}
+			}
+			return new Shape($opener_type, $shape_types, $this->reflection, $this->allows_null);
+		}
+		return $this->parseSingleType($type, $source, $position);
 	}
 
 }

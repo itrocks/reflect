@@ -24,7 +24,7 @@ class Int_Mask extends Named
 	//------------------------------------------------------------------------------------ __toString
 	public function __toString() : string
 	{
-		return join('|', $this->values);
+		return join(($this->name === 'int-mask-of') ? '|' : ',', $this->values);
 	}
 
 }
