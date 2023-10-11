@@ -11,6 +11,7 @@ use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
+use ITRocks\Reflect\Type\PHPStan\Int_Range;
 use ITRocks\Reflect\Type\PHPStan\Parameter;
 use ITRocks\Reflect\Type\PHPStan\Parser;
 use ITRocks\Reflect\Type\PHPStan\String_Literal;
@@ -280,6 +281,23 @@ class PHPStan_Parser_Test // phpcs:ignore
 			self::assertInstanceOf(Int_Literal::class, $type);
 			self::assertEquals((int)$int, $type->getValue());
 		}
+	}
+
+	//---------------------------------------------------------------------------------- testIntRange
+	/**
+	 * @param int|'min' $min
+	 * @param int|'max' $max
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'int<-100,100>', -100,  100])]
+	#[TestWith([1, 'int<min,-10>',  'min', -10])]
+	#[TestWith([2, 'int<10,max>',   10,    'max'])]
+	public function testIntRange(int $key, string $source, int|string $min, int|string $max) : void
+	{
+		$type = self::$parser->parse($source);
+		static::assertInstanceOf(Int_Range::class, $type, "data set #$key");
+		static::assertEquals($min, $type->min, "data set #$key min");
+		static::assertEquals($max, $type->max, "data set #$key max");
 	}
 
 	//------------------------------------------------------------------------- testIntersectionUnion

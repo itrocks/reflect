@@ -405,7 +405,7 @@ class Parser // phpcs:ignore
 				return new Intersection($types, $this->reflection, $this->allows_null);
 			}
 		}
-		if ($opener === '(') {
+		elseif ($opener === '(') {
 			if ($opener_type === '') {
 				if (count($types) === 1) {
 					return reset($types);
@@ -425,6 +425,29 @@ class Parser // phpcs:ignore
 				}
 				/** @var non-empty-list<Parameter> $types */
 				return new Call($opener_type, $types, $this->reflection, $this->allows_null);
+			}
+		}
+		elseif ($opener === '<') {
+			if ($opener_type === 'int') {
+				$value0 = ($types[0] instanceof Int_Literal)
+					? $types[0]->value
+					: strval($types[0]);
+				$value1 = ($types[1] instanceof Int_Literal)
+					? $types[1]->value
+					: strval($types[1]);
+				if (($value0 !== 'min') && !is_int($value0)) {
+					throw new Exception (
+						"Invalid integer range min limit [$value0] into [$source] position " . $position,
+						Exception::INVALID_LIMIT
+					);
+				}
+				if (($value1 !== 'max') && !is_int($value1)) {
+					throw new Exception (
+						"Invalid integer range max limit [$value1] into [$source] position " . $position,
+						Exception::INVALID_LIMIT
+					);
+				}
+				return new Int_Range($value0, $value1, $this->reflection, $this->allows_null);
 			}
 		}
 		throw new Exception('Bad type');
