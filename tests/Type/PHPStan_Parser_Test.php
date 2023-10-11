@@ -12,6 +12,7 @@ use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
+use ITRocks\Reflect\Type\PHPStan\Int_Mask_Of;
 use ITRocks\Reflect\Type\PHPStan\Int_Range;
 use ITRocks\Reflect\Type\PHPStan\Parameter;
 use ITRocks\Reflect\Type\PHPStan\Parser;
@@ -296,6 +297,36 @@ class PHPStan_Parser_Test // phpcs:ignore
 			self::assertInstanceOf(Int_Literal::class, $type);
 			self::assertEquals((int)$int, $type->getValue());
 		}
+	}
+
+	//--------------------------------------------------------------------------------- testIntMaskOf
+	/**
+	 * @param list<int|string> $expect
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'int-mask-of<1|2|4>', [1, 2, 4]])]
+	#[TestWith([1,
+		'int-mask-of<ReflectionAttribute::TARGET_CLASS|ReflectionAttribute::TARGET_METHOD>',
+		['ReflectionAttribute::TARGET_CLASS', 'ReflectionAttribute::TARGET_METHOD']
+	])]
+	#[TestWith([2,
+		'int-mask-of<1|ReflectionAttribute::TARGET_METHOD|4>',
+		[1, 'ReflectionAttribute::TARGET_METHOD', 4]
+	])]
+	public function testIntMaskOf(int $key, string $source, array $expect) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Int_Mask_Of::class, $type, "data set #$key");
+		$actual = [];
+		foreach ($type->values as $value) {
+			// @phpstan-ignore-next-line Need to be tested
+			self::assertTrue(
+				($value instanceof Class_Constant) || ($value instanceof Int_Literal), // @phpstan-ignore-line
+				"data set #$key"
+			);
+			$actual[] = ($value instanceof Int_Literal) ? $value->value : strval($value);
+		}
+		self::assertEquals($expect, $actual, "data set #$key");
 	}
 
 	//---------------------------------------------------------------------------------- testIntRange

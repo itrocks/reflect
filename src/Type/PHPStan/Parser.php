@@ -446,18 +446,30 @@ class Parser // phpcs:ignore
 					? $types[1]->value
 					: strval($types[1]);
 				if (($value0 !== 'min') && !is_int($value0)) {
-					throw new Exception (
+					throw new Exception(
 						"Invalid integer range min limit [$value0] into [$source] position " . $position,
 						Exception::INVALID_LIMIT
 					);
 				}
 				if (($value1 !== 'max') && !is_int($value1)) {
-					throw new Exception (
+					throw new Exception(
 						"Invalid integer range max limit [$value1] into [$source] position " . $position,
 						Exception::INVALID_LIMIT
 					);
 				}
 				return new Int_Range($value0, $value1, $this->reflection, $this->allows_null);
+			}
+			elseif ($opener_type === 'int-mask-of') {
+				foreach ($types as $value) {
+					if (!(($value instanceof Class_Constant) || ($value instanceof Int_Literal))) {
+						throw new Exception(
+							"Invalid integer mask value [$value] into [$source] position " . $position,
+							Exception::INVALID_VALUE
+						);
+					}
+				}
+				/** @var list<Class_Constant|Int_Literal> $types */
+				return new Int_Mask_Of($types, $this->reflection, $this->allows_null);
 			}
 		}
 		throw new Exception('Bad type');
