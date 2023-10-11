@@ -12,7 +12,7 @@ use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
-use ITRocks\Reflect\Type\PHPStan\Int_Mask_Of;
+use ITRocks\Reflect\Type\PHPStan\Int_Mask;
 use ITRocks\Reflect\Type\PHPStan\Int_Range;
 use ITRocks\Reflect\Type\PHPStan\Parameter;
 use ITRocks\Reflect\Type\PHPStan\Parser;
@@ -253,7 +253,10 @@ class PHPStan_Parser_Test // phpcs:ignore
 	}
 
 	//----------------------------------------------------------------------------- testClassConstant
-	/** @throws Exception */
+	/**
+	 * @param non-negative-int $key
+	 * @throws Exception
+	 */
 	#[TestWith([0, 'ReflectionAttribute::TARGET_CLASS'])]
 	#[TestWith([1, 'ReflectionAttribute::TARGET_*'])]
 	#[TestWith([2, 'ReflectionAttribute::*'])]
@@ -278,7 +281,10 @@ class PHPStan_Parser_Test // phpcs:ignore
 	}
 
 	//-------------------------------------------------------------------------------- testCollection
-	/** @throws Exception */
+	/**
+	 * @param non-negative-int $key
+	 * @throws Exception
+	 */
 	#[TestWith([0, 'array<int>', 'array', '', 'int'])]
 	#[TestWith([1, 'non-empty-array<int,string>', 'non-empty-array', 'int', 'string'])]
 	#[TestWith([2, 'list<int<0,max>>', 'list', '', 'int<0,max>'])]
@@ -316,8 +322,28 @@ class PHPStan_Parser_Test // phpcs:ignore
 		}
 	}
 
+	//----------------------------------------------------------------------------------- testIntMask
+	/**
+	 * @param non-negative-int $key
+	 * @param list<int|string> $expect
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'int-mask<1, 2, 4>', [1, 2, 4]])]
+	public function testIntMask(int $key, string $source, array $expect) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Int_Mask::class, $type, "data set #$key");
+		self::assertEquals('int-mask', $type->getName(), "data set #$key name");
+		$actual = [];
+		foreach ($type->values as $value) {
+			$actual[] = ($value instanceof Int_Literal) ? $value->value : strval($value);
+		}
+		self::assertEquals($expect, $actual, "data set #$key");
+	}
+
 	//--------------------------------------------------------------------------------- testIntMaskOf
 	/**
+	 * @param non-negative-int $key
 	 * @param list<int|string> $expect
 	 * @throws Exception
 	 */
@@ -333,13 +359,13 @@ class PHPStan_Parser_Test // phpcs:ignore
 	public function testIntMaskOf(int $key, string $source, array $expect) : void
 	{
 		$type = self::$parser->parse($source);
-		self::assertInstanceOf(Int_Mask_Of::class, $type, "data set #$key");
+		self::assertInstanceOf(Int_Mask::class, $type, "data set #$key");
+		self::assertEquals('int-mask-of', $type->getName(), "data set #$key name");
 		$actual = [];
-		foreach ($type->values as $value) {
-			// @phpstan-ignore-next-line Need to be tested
+		foreach ($type->values as $value_key => $value) {
 			self::assertTrue(
-				($value instanceof Class_Constant) || ($value instanceof Int_Literal), // @phpstan-ignore-line
-				"data set #$key"
+				($value instanceof Class_Constant) || ($value instanceof Int_Literal),
+				"data set #$key value $value_key type"
 			);
 			$actual[] = ($value instanceof Int_Literal) ? $value->value : strval($value);
 		}
@@ -348,8 +374,9 @@ class PHPStan_Parser_Test // phpcs:ignore
 
 	//---------------------------------------------------------------------------------- testIntRange
 	/**
-	 * @param int|'min' $min
-	 * @param int|'max' $max
+	 * @param non-negative-int $key
+	 * @param int|'min'        $min
+	 * @param int|'max'        $max
 	 * @throws Exception
 	 */
 	#[TestWith([0, 'int<-100,100>', -100,  100])]
@@ -435,6 +462,7 @@ class PHPStan_Parser_Test // phpcs:ignore
 
 	//------------------------------------------------------------------------------- testParentheses
 	/**
+	 * @param non-negative-int                                                 $key
 	 * @param list<list<list<list<list<string>|string>|string>|string>|string> $expect
 	 * @throws Exception
 	 */

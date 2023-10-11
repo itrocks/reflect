@@ -439,7 +439,7 @@ class Parser // phpcs:ignore
 		}
 		elseif ($opener === '<') {
 			if (in_array($opener_type, ['array', 'list', 'non-empty-array', 'non-empty-list'], true)) {
-				if (($separator !== '') && ($separator !== ',')) {
+				if (!in_array($separator, ['', ','], true)) {
 					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
 				}
 				$key  = (count($types) > 1) ? reset($types) : null;
@@ -467,6 +467,25 @@ class Parser // phpcs:ignore
 				}
 				return new Int_Range($value0, $value1, $this->reflection, $this->allows_null);
 			}
+			elseif ($opener_type === 'int-mask') {
+				if (!in_array($separator, ['', ','], true)) {
+					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
+				}
+				foreach ($types as $value) {
+					if (!(
+						($value instanceof Class_Constant)
+						|| ($value instanceof Int_Literal)
+						|| ($value instanceof Union)
+					)) {
+						throw new Exception(
+							"Invalid integer mask value [$value] into [$source] position " . $position,
+							Exception::INVALID_VALUE
+						);
+					}
+				}
+				/** @var list<Class_Constant|Int_Literal|Union> $types */
+				return new Int_Mask($opener_type, $types, $this->reflection, $this->allows_null);
+			}
 			elseif ($opener_type === 'int-mask-of') {
 				foreach ($types as $value) {
 					if (!(($value instanceof Class_Constant) || ($value instanceof Int_Literal))) {
@@ -477,7 +496,7 @@ class Parser // phpcs:ignore
 					}
 				}
 				/** @var list<Class_Constant|Int_Literal> $types */
-				return new Int_Mask_Of($types, $this->reflection, $this->allows_null);
+				return new Int_Mask($opener_type, $types, $this->reflection, $this->allows_null);
 			}
 		}
 		throw new Exception('Bad type');

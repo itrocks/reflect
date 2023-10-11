@@ -2,26 +2,23 @@
 namespace ITRocks\Reflect\Type\PHPStan;
 
 use ITRocks\Reflect\Interface\Reflection;
-use ITRocks\Reflect\Type\Common;
-use ITRocks\Reflect\Type\Interface\Single;
-use ITRocks\Reflect\Type\PHP\Allows_Null;
+use ITRocks\Reflect\Type\PHP\Named;
+use ITRocks\Reflect\Type\PHP\Union;
 
-class Int_Mask_Of implements Single
+class Int_Mask extends Named
 {
-	use Allows_Null;
-	use Common;
 
 	//--------------------------------------------------------------------------------------- $values
-	/** @var list<Int_Literal|Class_Constant> */
+	/** @var list<Int_Literal|Class_Constant|Union> */
 	public array $values;
 
 	//----------------------------------------------------------------------------------- __construct
-	/** @param list<Int_Literal|Class_Constant> $values */
-	public function __construct(array $values, Reflection $reflection, bool $allows_null)
-	{
-		$this->allows_null = $allows_null;
-		$this->reflection  = $reflection;
-		$this->values      = $values;
+	/** @param list<Int_Literal|Class_Constant|Union> $values */
+	public function __construct(
+		string $name, array $values, Reflection $reflection, bool $allows_null
+	) {
+		parent::__construct($name, $reflection, $allows_null);
+		$this->values = $values;
 	}
 
 	//------------------------------------------------------------------------------------ __toString
