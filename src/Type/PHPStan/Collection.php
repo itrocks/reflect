@@ -2,40 +2,40 @@
 namespace ITRocks\Reflect\Type\PHPStan;
 
 use ITRocks\Reflect\Interface\Reflection;
-use ITRocks\Reflect\Type\Common;
 use ITRocks\Reflect\Type\Interface\Multiple;
 use ITRocks\Reflect\Type\Interface\Reflection_Type;
 use ITRocks\Reflect\Type\Interface\Single;
-use ITRocks\Reflect\Type\PHP\Allows_Null;
+use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\Undefined;
 
-class Collection implements Single
+class Collection extends Named
 {
-	use Allows_Null;
-	use Common;
 
 	//----------------------------------------------------------------------------------- $dimensions
 	/** @var non-negative-int */
 	protected int $dimensions = 0;
 
+	//------------------------------------------------------------------------------------------ $key
+	public ?Reflection_Type $key = null;
+
 	//----------------------------------------------------------------------------------------- $type
-	protected Reflection_Type $type;
+	public Reflection_Type $type;
 
 	//----------------------------------------------------------------------------------- __construct
-	public function __construct(Reflection_Type $type, Reflection $reflection, bool $allows_null)
-	{
-		$this->allows_null = $allows_null;
-		$this->reflection  = $reflection;
-		$this->type        = $type;
+	public function __construct(
+		string $name, Reflection_Type $type, Reflection $reflection, bool $allows_null
+	) {
+		parent::__construct($name, $reflection, $allows_null);
+		$this->type = $type;
 	}
 
 	//------------------------------------------------------------------------------------ __toString
 	public function __toString() : string
 	{
-		if ($this->dimensions > 0) {
+		if (($this->name === '') && ($this->dimensions > 0)) {
 			return $this->type . str_repeat('[]', $this->dimensions);
 		}
-		return 'array<' . $this->type . '>';
+		return $this->name . '<' . $this->type . '>';
 	}
 
 	//--------------------------------------------------------------------------------- getDimensions
@@ -59,21 +59,27 @@ class Collection implements Single
 		}
 	}
 
-	//--------------------------------------------------------------------------------------- getType
-	public function getType() : Reflection_Type
-	{
-		return $this->type;
-	}
-
 	//---------------------------------------------------------------------------------- ofDimensions
 	/** @param positive-int $dimensions */
 	public static function ofDimensions(
-		Single $type, int $dimensions, Reflection $reflection, bool $allows_null
-	) : static
+		Reflection_Type $type, int $dimensions, Reflection $reflection, bool $allows_null
+	) : self
 	{
-		/** @phpstan-ignore-next-line Will keep this form TODO ensure this by contract */
-		$collection = new static($type, $reflection, $allows_null);
+		$collection = new Collection('', $type, $reflection, $allows_null);
 		$collection->dimensions = $dimensions;
+		return $collection;
+	}
+
+	//---------------------------------------------------------------------------------------- ofName
+	public static function ofName(
+		string $name, Reflection_Type $type, Reflection $reflection, bool $allows_null,
+		Reflection_Type $key = null
+	) : self
+	{
+		$collection = new Collection($name, $type, $reflection, $allows_null);
+		if (isset($key)) {
+			$collection->key = $key;
+		}
 		return $collection;
 	}
 

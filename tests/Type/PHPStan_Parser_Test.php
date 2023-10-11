@@ -277,6 +277,23 @@ class PHPStan_Parser_Test // phpcs:ignore
 		}
 	}
 
+	//-------------------------------------------------------------------------------- testCollection
+	/** @throws Exception */
+	#[TestWith([0, 'array<int>', 'array', '', 'int'])]
+	#[TestWith([1, 'non-empty-array<int,string>', 'non-empty-array', 'int', 'string'])]
+	#[TestWith([2, 'list<int<0,max>>', 'list', '', 'int<0,max>'])]
+	#[TestWith([3, 'non-empty-list<Intersection|Union>', 'non-empty-list', '', 'Intersection|Union'])]
+	public function testCollection(
+		int $key, string $source, string $name, string $type_key, string $type_type
+	) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Collection::class, $type, "data set #$key");
+		self::assertEquals($name,      $type->getName(), "data set #$key name");
+		self::assertEquals($type_key,  (string)$type->key, "data set #$key key");
+		self::assertEquals($type_type, (string)$type->type, "data set #$key type");
+	}
+
 	//------------------------------------------------------------------------------ testFloatLiteral
 	/** @throws Exception */
 	public function testFloatLiteral() : void

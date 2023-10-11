@@ -438,6 +438,14 @@ class Parser // phpcs:ignore
 			}
 		}
 		elseif ($opener === '<') {
+			if (in_array($opener_type, ['array', 'list', 'non-empty-array', 'non-empty-list'], true)) {
+				if (($separator !== '') && ($separator !== ',')) {
+					$types = [$this->parseType(['', $separator], $types, '', $source, $position)];
+				}
+				$key  = (count($types) > 1) ? reset($types) : null;
+				$type = end($types);
+				return Collection::ofName($opener_type, $type, $this->reflection, $this->allows_null, $key);
+			}
 			if ($opener_type === 'int') {
 				$value0 = ($types[0] instanceof Int_Literal)
 					? $types[0]->value
