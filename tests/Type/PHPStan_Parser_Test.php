@@ -7,6 +7,7 @@ use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\PHP\Union;
 use ITRocks\Reflect\Type\PHPStan\Call;
+use ITRocks\Reflect\Type\PHPStan\Class_Constant;
 use ITRocks\Reflect\Type\PHPStan\Collection;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
@@ -248,6 +249,20 @@ class PHPStan_Parser_Test // phpcs:ignore
 		if ($return instanceof Named) {
 			self::assertEquals($name, $return->getName(), "data set #$key");
 		}
+	}
+
+	//----------------------------------------------------------------------------- testClassConstant
+	/** @throws Exception */
+	#[TestWith([0, 'ReflectionAttribute::TARGET_CLASS'])]
+	#[TestWith([1, 'ReflectionAttribute::TARGET_*'])]
+	#[TestWith([2, 'ReflectionAttribute::*'])]
+	public function testClassConstant(int $key, string $source) : void
+	{
+		$type = self::$parser->parse($source);
+		[$class, $constant] = explode('::', $source, 2);
+		self::assertInstanceOf(Class_Constant::class, $type, "data set #$key");
+		self::assertEquals($class, $type->class, "data set #$key class");
+		self::assertEquals($constant, $type->constant, "data set #$key constant");
 	}
 
 	//---------------------------------------------------------------------------- testClassNamedType

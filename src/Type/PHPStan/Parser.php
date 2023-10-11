@@ -103,13 +103,18 @@ class Parser // phpcs:ignore
 				}
 				$char = $source[$position];
 			}
-			$separator = $char;
-			if (($separator === '&') && str_ends_with($type, ' ')) {
+			if (($char === ':') && ($position + 1 < $length) && ($source[$position + 1] === ':')) {
+				$type .= '::';
+				$position += 2;
+				continue;
+			}
+			elseif (($char === '&') && str_ends_with($type, ' ')) {
 				$type .= $char;
 				$position ++;
 				continue;
 			}
-			$type = trim($type);
+			$separator = $char;
+			$type      = trim($type);
 			if (($type === '') && ($types[$depth] === [])) {
 				if ($separator === '?') {
 					$this->allows_null = true;
@@ -250,7 +255,12 @@ class Parser // phpcs:ignore
 		else {
 			$parameter = null;
 		}
-		if (
+		if (str_contains($type, '::')) {
+			/** @var class-string $class */
+			[$class, $constant] = explode('::', $type, 2);
+			$type = new Class_Constant($class, $constant, $this->reflection, $this->allows_null);
+		}
+		elseif (
 			in_array($type, static::BOTTOM, true)
 			|| in_array($type, static::SINGLE, true)
 			|| $this->isClassName($type)
