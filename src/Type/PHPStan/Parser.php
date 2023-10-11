@@ -149,12 +149,18 @@ class Parser // phpcs:ignore
 								}
 								// lower priority : current depth goes next and closes
 								else {
+									$opener_type = (($depths[$depth][self::OPENER] === '') || (count($types[$depth]) < 2))
+										? null
+										: $types[$depth][0];
 									$types[$depth] = [
 										$this->parseType(
-											end($depths), end($types), $type, $source,
+											$depths[$depth], $types[$depth], $type, $source,
 											$position // @phpstan-ignore-line $position is int
 										)
 									];
+									if (isset($opener_type)) {
+										array_unshift($types[$depth], $opener_type);
+									}
 								}
 								/** @var non-empty-list<array{""|key-of<self::MATCH>,""|"|"|"&"|":"|","}> $depths */
 								$depths[$depth][self::SEPARATOR] = $separator;
@@ -374,6 +380,23 @@ class Parser // phpcs:ignore
 		if (isset($single_type)) {
 			$types[] = $single_type;
 		}
+		if ($separator === ':') {
+			$return = array_pop($types);
+			while ($types !== []) {
+				$type = array_pop($types);
+				if ($type instanceof Call) {
+					$type->return = $return;
+				}
+				else {
+					throw new Exception(
+						"Unexpected separator [:] into [$source] position " . $position,
+						Exception::UNEXPECTED_SEPARATOR
+					);
+				}
+				$return = $type;
+			}
+			return $return;
+		}
 		if ($opener === '') {
 			if ($separator === '|') {
 				return new Union($types, $this->reflection, $this->allows_null);
@@ -381,26 +404,20 @@ class Parser // phpcs:ignore
 			elseif ($separator === '&') {
 				return new Intersection($types, $this->reflection, $this->allows_null);
 			}
-			elseif ($separator === ':') {
-				$return = array_pop($types);
-				while ($types !== []) {
-					$type = array_pop($types);
-					if ($type instanceof Call) {
-						$type->return = $return;
-					}
-					else {
-						throw new Exception(
-							"Unexpected separator [:] into [$source] position " . $position,
-							Exception::UNEXPECTED_SEPARATOR
-						);
-					}
-					$return = $type;
-				}
-				return $return;
-			}
 		}
 		if ($opener === '(') {
-			if (in_array($opener_type, ['callable', 'Closure', '\Closure'], true)) {
+			if ($opener_type === '') {
+				if (count($types) === 1) {
+					return reset($types);
+				}
+				if ($separator === '|') {
+					return new Union($types, $this->reflection, $this->allows_null);
+				}
+				if ($separator === '&') {
+					return new Intersection($types, $this->reflection, $this->allows_null);
+				}
+			}
+			elseif (in_array($opener_type, ['callable', 'Closure', '\Closure'], true)) {
 				foreach ($types as $key => $parameter_type) {
 					if (!($parameter_type instanceof Parameter)) {
 						$types[$key] = new Parameter($parameter_type, false, false, '', false);

@@ -2,6 +2,7 @@
 namespace ITRocks\Reflect\Tests\Type;
 
 use ITRocks\Reflect\Reflection_Property;
+use ITRocks\Reflect\Type\Interface\Multiple;
 use ITRocks\Reflect\Type\PHP\Intersection;
 use ITRocks\Reflect\Type\PHP\Named;
 use ITRocks\Reflect\Type\PHP\Union;
@@ -349,6 +350,45 @@ class PHPStan_Parser_Test // phpcs:ignore
 			}
 			next($expect);
 		}
+	}
+
+	//------------------------------------------------------------------------------- testParentheses
+	/**
+	 * @param list<list<list<list<list<string>|string>|string>|string>|string> $expect
+	 * @throws Exception
+	 */
+	#[TestWith([0, 'Intersection&(Union|Reflection)',
+		[Intersection::class, 'Intersection', [Union::class, 'Union', 'Reflection']]
+	])]
+	#[TestWith([1, 'Intersection&(Union&Reflection)',
+		[Intersection::class, 'Intersection', [Intersection::class, 'Union', 'Reflection']]
+	])]
+	#[TestWith([1, 'Intersection&(Union|(Multiple&(Closure(int):void|Reflection)))',
+		[Intersection::class, 'Intersection', [Union::class, 'Union', [Intersection::class, 'Multiple', [Union::class, 'Closure', 'Reflection']]]]
+	])]
+	public function testParentheses(int $key, string $source, array $expect) : void
+	{
+		$type = self::$parser->parse($source);
+		static::assertInstanceOf(Multiple::class, $type, "data set #$key");
+		$operand = 0;
+		$tidy = function(Multiple $multiple) use($key, &$operand, &$tidy) : array {
+			$result = [];
+			foreach ($multiple->getTypes() as $type) {
+				$operand ++;
+				static::assertTrue(
+					($type instanceof Named) || ($type instanceof Multiple), "data set #$key operand $operand"
+				);
+				if ($type instanceof Named) {
+					$result[] = $type->getName();
+				}
+				if ($type instanceof Multiple) {
+					$result[] = array_merge([get_class($type)], $tidy($type));
+				}
+			}
+			return $result;
+		};
+		$actual = array_merge([get_class($type)], $tidy($type));
+		static::assertEquals($expect, $actual, "data set #$key");
 	}
 
 	//------------------------------------------------------------------------ testSquareBracketArray
