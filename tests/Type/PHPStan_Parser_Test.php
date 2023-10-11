@@ -554,6 +554,11 @@ class PHPStan_Parser_Test // phpcs:ignore
 	 */
 	#[TestWith([0, '\A\B<float,int,string>',   '\A\B',   ['float', 'int', 'string']])]
 	#[TestWith([1, 'array{float,int,string}',  'array',  ['float', 'int', 'string']])]
+	#[TestWith([2, 'array{float,b:int}',       'array',  ['float', 'b' => 'int']])]
+	#[TestWith([3, 'array{0:float,b:int}',     'array',  ['float', 'b' => 'int']])]
+	#[TestWith([4, 'array{"a":float,"b":int}', 'array',  ['a' => 'float', 'b' => 'int']])]
+	#[TestWith([5, 'object{a:float,b:int}',    'object', ['a' => 'float', 'b' => 'int']])]
+	#[TestWith([6, 'object{"a":float,b:int}',  'object', ['a' => 'float', 'b' => 'int']])]
 	public function testShape(int $key, string $source, string $name, array $values)
 		: void
 	{

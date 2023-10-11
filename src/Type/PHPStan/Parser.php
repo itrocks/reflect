@@ -135,6 +135,14 @@ class Parser // phpcs:ignore
 					);
 				}
 			}
+			if (($separator === ':') && ($depths[$depth][self::OPENER] === '{')) {
+				if (str_starts_with($type, '"')) {
+					$type = substr($type, 1);
+				}
+				$type .= $separator;
+				$position ++;
+				continue;
+			}
 			$separator_level = strpos('|&:,', $separator);
 			if ($separator_level !== false) {
 				$previous_separator = $depths[$depth][self::SEPARATOR];
@@ -270,6 +278,15 @@ class Parser // phpcs:ignore
 			/** @var class-string $class */
 			[$class, $constant] = explode('::', $type, 2);
 			$type = new Class_Constant($class, $constant, $this->reflection, $this->allows_null);
+		}
+		elseif (($pos = strpos($type, ':')) !== false) {
+			$parameter = [
+				false,
+				false,
+				substr($type, 0, $pos),
+				false
+			];
+			$type = $this->parseSingleType(substr($type, $pos + 1), $source, $position);
 		}
 		elseif (
 			in_array($type, static::BOTTOM, true)
