@@ -6,17 +6,15 @@ use ReflectionException;
 class Exception extends ReflectionException
 {
 
-	/** @var int */ const BAD_CHARACTER_IN_ARRAY_DEFINITION = 101;
-	/** @var int */ const BAD_CHARACTER_IN_FLOAT_LITERAL    = 102;
-	/** @var int */ const BAD_CHARACTER_IN_INT_LITERAL      = 103;
-	/** @var int */ const BAD_CHARACTER_IN_STRING_LITERAL   = 104;
-	/** @var int */ const BAD_CLOSING_CHARACTER             = 105;
-	/** @var int */ const INVALID_LIMIT                     = 106;
-	/** @var int */ const INVALID_VALUE                     = 107;
-	/** @var int */ const MISSING_TYPE                      = 108;
-	/** @var int */ const UNEXPECTED_PARAMETER              = 109;
-	/** @var int */ const UNEXPECTED_SEPARATOR              = 110;
-	/** @var int */ const UNKNOWN_TYPE                      = 111;
+	/** @var int */ const BAD_CHARACTER_IN_FLOAT_LITERAL  = 101;
+	/** @var int */ const BAD_CHARACTER_IN_INT_LITERAL    = 102;
+	/** @var int */ const BAD_CHARACTER_IN_STRING_LITERAL = 103;
+	/** @var int */ const BAD_CLOSING_CHARACTER           = 104;
+	/** @var int */ const INVALID_LIMIT                   = 105;
+	/** @var int */ const INVALID_VALUE                   = 106;
+	/** @var int */ const MISSING_TYPE                    = 107;
+	/** @var int */ const UNEXPECTED_SEPARATOR            = 108;
+	/** @var int */ const UNKNOWN_TYPE                    = 109;
 
 	//----------------------------------------------------------------------------- badNumericLiteral
 	public static function badNumericLiteral(string $type_string, string $source, int $type_position)

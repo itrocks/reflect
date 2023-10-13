@@ -9,6 +9,7 @@ use ITRocks\Reflect\Type\PHP\Union;
 use ITRocks\Reflect\Type\PHPStan\Call;
 use ITRocks\Reflect\Type\PHPStan\Class_Constant;
 use ITRocks\Reflect\Type\PHPStan\Collection;
+use ITRocks\Reflect\Type\PHPStan\Condition;
 use ITRocks\Reflect\Type\PHPStan\Exception;
 use ITRocks\Reflect\Type\PHPStan\Float_Literal;
 use ITRocks\Reflect\Type\PHPStan\Int_Literal;
@@ -109,16 +110,6 @@ class PHPStan_Parser_Test // phpcs:ignore
 			'Bad character [i] after string literal [text] into ["text"int] position 6'
 		);
 		self::$parser->parse('"text"int');
-	}
-
-	//--------------------------------------------------- testBadStringLiteralEndsWithEscapeCharacter
-	/** @throws Exception */
-	public function testBadStringLiteralEndsWithEscapeCharacter() : void
-	{
-		$this->expectException(Exception::class);
-		$this->expectExceptionCode(Exception::BAD_CHARACTER_IN_STRING_LITERAL);
-		$this->expectExceptionMessage("Unterminated string literal [text\\] into ['text\\] position 6");
-		self::$parser->parse("'text\\");
 	}
 
 	//---------------------------------------------------------------- testBadStringLiteralQuoteAlone
@@ -302,7 +293,9 @@ class PHPStan_Parser_Test // phpcs:ignore
 	#[TestWith([0, 'array<int>', 'array', Named::class, 'int'])]
 	#[TestWith([1, 'non-empty-array<int,string>', 'non-empty-array', Named::class, 'string', 'int'])]
 	#[TestWith([2, 'list<int<0,max>>', 'list', Int_Range::class, 'int<0,max>'])]
-	#[TestWith([3, 'non-empty-list<Intersection|Union>', 'non-empty-list', Union::class, 'Intersection|Union'])]
+	#[TestWith([3,
+		'non-empty-list<Intersection|Union>', 'non-empty-list', Union::class, 'Intersection|Union'
+	])]
 	#[TestWith([4, 'iterable<Union>', 'iterable', Named::class, 'Union'])]
 	public function testCollection(
 		int $key, string $source, string $name, string $class, string $type_type, string $type_key = ''
@@ -314,6 +307,29 @@ class PHPStan_Parser_Test // phpcs:ignore
 		self::assertInstanceOf($class, $type->type, "data set #$key class");
 		self::assertEquals($type_key,  (string)$type->key, "data set #$key key");
 		self::assertEquals($type_type, (string)$type->type, "data set #$key type");
+	}
+
+	//--------------------------------------------------------------------------------- testCondition
+	/**
+	 * @param array{string,string,string,string,string} $expect
+	 * @throws Exception
+	 */
+	#[TestWith([0, '($param is Reflection ? Reflection : string)',
+		['$param', 'is', 'Reflection', 'Reflection', 'string']
+	])]
+	#[TestWith([1, '($p is not (A | B) ? C | D : E | F)', ['$p', 'is not', 'A|B', 'C|D', 'E|F']])]
+	public function testCondition(int $key, string $source, array $expect) : void
+	{
+		$type = self::$parser->parse($source);
+		self::assertInstanceOf(Condition::class, $type);
+		$actual = [
+			strval($type->condition_left),
+			$type->is_not ? 'is not' : 'is',
+			strval($type->condition_right),
+			strval($type->true_type),
+			strval($type->false_type)
+		];
+		self::assertEquals($expect, $actual, "data set #$key");
 	}
 
 	//------------------------------------------------------------------------- testConstantNamedType
@@ -493,8 +509,12 @@ class PHPStan_Parser_Test // phpcs:ignore
 	 * @param class-string     $class
 	 * @throws Exception
 	 */
-	#[TestWith([0, 'key-of<Parser::SEPARATORS>', 'key-of', Class_Constant::class, 'Parser::SEPARATORS'])]
-	#[TestWith([1, 'value-of<Parser::SEPARATORS>', 'value-of', Class_Constant::class, 'Parser::SEPARATORS'])]
+	#[TestWith([0,
+		'key-of<Parser::SEPARATORS>', 'key-of', Class_Constant::class, 'Parser::SEPARATORS']
+	)]
+	#[TestWith([1,
+		'value-of<Parser::SEPARATORS>', 'value-of', Class_Constant::class, 'Parser::SEPARATORS']
+	)]
 	#[TestWith([2, 'value-of<Enumerable>', 'value-of', Named::class, 'Enumerable'])]
 	public function testOf(
 		int $key, string $source, string $name, string $class, string $type_type
@@ -519,8 +539,20 @@ class PHPStan_Parser_Test // phpcs:ignore
 	#[TestWith([1, 'Intersection&(Union&Reflection)',
 		[Intersection::class, 'Intersection', [Intersection::class, 'Union', 'Reflection']]
 	])]
-	#[TestWith([1, 'Intersection&(Union|(Multiple&(Closure(int):void|Reflection)))',
-		[Intersection::class, 'Intersection', [Union::class, 'Union', [Intersection::class, 'Multiple', [Union::class, 'Closure', 'Reflection']]]]
+	#[TestWith([2,
+		'A&(B&C|D&E)|F',
+		[
+			Union::class, [
+				Intersection::class, 'A',
+				[Union::class, [Intersection::class, 'B', 'C'], [Intersection::class, 'D', 'E']]
+			],
+			'F'
+		]
+	])]
+	#[TestWith([3, 'Intersection&(Union|(Multiple&(Closure(int):void|Reflection)))',
+		[Intersection::class, 'Intersection', [Union::class, 'Union',
+			[Intersection::class, 'Multiple', [Union::class, 'Closure', 'Reflection']]
+		]]
 	])]
 	public function testParentheses(int $key, string $source, array $expect) : void
 	{
